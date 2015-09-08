@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+<title>Writing Efficient R Code</title>
+
+<script type="text/javascript">
+window.onload = function() {
+  var imgs = document.getElementsByTagName('img'), i, img;
+  for (i = 0; i < imgs.length; i++) {
+    img = imgs[i];
+    // center an image if it is the only element of its parent
+    if (img.parentElement.childElementCount === 1)
+      img.parentElement.style.textAlign = 'center';
+  }
+};
+</script>
+
+<!-- Styles for R syntax highlighter -->
+<style type="text/css">
+   pre .operator,
+   pre .paren {
+     color: rgb(104, 118, 135)
+   }
+
+   pre .literal {
+     color: #990073
+   }
+
+   pre .number {
+     color: #099;
+   }
+
+   pre .comment {
+     color: #998;
+     font-style: italic
+   }
+
+   pre .keyword {
+     color: #900;
+     font-weight: bold
+   }
+
+   pre .identifier {
+     color: rgb(0, 0, 0);
+   }
+
+   pre .string {
+     color: #d14;
+   }
+</style>
+
+<!-- R syntax highlighter -->
+<script type="text/javascript">
+var hljs=new function(){function m(p){return p.replace(/&/gm,"&amp;").replace(/</gm,"&lt;")}function f(r,q,p){return RegExp(q,"m"+(r.cI?"i":"")+(p?"g":""))}function b(r){for(var p=0;p<r.childNodes.length;p++){var q=r.childNodes[p];if(q.nodeName=="CODE"){return q}if(!(q.nodeType==3&&q.nodeValue.match(/\s+/))){break}}}function h(t,s){var p="";for(var r=0;r<t.childNodes.length;r++){if(t.childNodes[r].nodeType==3){var q=t.childNodes[r].nodeValue;if(s){q=q.replace(/\n/g,"")}p+=q}else{if(t.childNodes[r].nodeName=="BR"){p+="\n"}else{p+=h(t.childNodes[r])}}}if(/MSIE [678]/.test(navigator.userAgent)){p=p.replace(/\r/g,"\n")}return p}function a(s){var r=s.className.split(/\s+/);r=r.concat(s.parentNode.className.split(/\s+/));for(var q=0;q<r.length;q++){var p=r[q].replace(/^language-/,"");if(e[p]){return p}}}function c(q){var p=[];(function(s,t){for(var r=0;r<s.childNodes.length;r++){if(s.childNodes[r].nodeType==3){t+=s.childNodes[r].nodeValue.length}else{if(s.childNodes[r].nodeName=="BR"){t+=1}else{if(s.childNodes[r].nodeType==1){p.push({event:"start",offset:t,node:s.childNodes[r]});t=arguments.callee(s.childNodes[r],t);p.push({event:"stop",offset:t,node:s.childNodes[r]})}}}}return t})(q,0);return p}function k(y,w,x){var q=0;var z="";var s=[];function u(){if(y.length&&w.length){if(y[0].offset!=w[0].offset){return(y[0].offset<w[0].offset)?y:w}else{return w[0].event=="start"?y:w}}else{return y.length?y:w}}function t(D){var A="<"+D.nodeName.toLowerCase();for(var B=0;B<D.attributes.length;B++){var C=D.attributes[B];A+=" "+C.nodeName.toLowerCase();if(C.value!==undefined&&C.value!==false&&C.value!==null){A+='="'+m(C.value)+'"'}}return A+">"}while(y.length||w.length){var v=u().splice(0,1)[0];z+=m(x.substr(q,v.offset-q));q=v.offset;if(v.event=="start"){z+=t(v.node);s.push(v.node)}else{if(v.event=="stop"){var p,r=s.length;do{r--;p=s[r];z+=("</"+p.nodeName.toLowerCase()+">")}while(p!=v.node);s.splice(r,1);while(r<s.length){z+=t(s[r]);r++}}}}return z+m(x.substr(q))}function j(){function q(x,y,v){if(x.compiled){return}var u;var s=[];if(x.k){x.lR=f(y,x.l||hljs.IR,true);for(var w in x.k){if(!x.k.hasOwnProperty(w)){continue}if(x.k[w] instanceof Object){u=x.k[w]}else{u=x.k;w="keyword"}for(var r in u){if(!u.hasOwnProperty(r)){continue}x.k[r]=[w,u[r]];s.push(r)}}}if(!v){if(x.bWK){x.b="\\b("+s.join("|")+")\\s"}x.bR=f(y,x.b?x.b:"\\B|\\b");if(!x.e&&!x.eW){x.e="\\B|\\b"}if(x.e){x.eR=f(y,x.e)}}if(x.i){x.iR=f(y,x.i)}if(x.r===undefined){x.r=1}if(!x.c){x.c=[]}x.compiled=true;for(var t=0;t<x.c.length;t++){if(x.c[t]=="self"){x.c[t]=x}q(x.c[t],y,false)}if(x.starts){q(x.starts,y,false)}}for(var p in e){if(!e.hasOwnProperty(p)){continue}q(e[p].dM,e[p],true)}}function d(B,C){if(!j.called){j();j.called=true}function q(r,M){for(var L=0;L<M.c.length;L++){if((M.c[L].bR.exec(r)||[null])[0]==r){return M.c[L]}}}function v(L,r){if(D[L].e&&D[L].eR.test(r)){return 1}if(D[L].eW){var M=v(L-1,r);return M?M+1:0}return 0}function w(r,L){return L.i&&L.iR.test(r)}function K(N,O){var M=[];for(var L=0;L<N.c.length;L++){M.push(N.c[L].b)}var r=D.length-1;do{if(D[r].e){M.push(D[r].e)}r--}while(D[r+1].eW);if(N.i){M.push(N.i)}return f(O,M.join("|"),true)}function p(M,L){var N=D[D.length-1];if(!N.t){N.t=K(N,E)}N.t.lastIndex=L;var r=N.t.exec(M);return r?[M.substr(L,r.index-L),r[0],false]:[M.substr(L),"",true]}function z(N,r){var L=E.cI?r[0].toLowerCase():r[0];var M=N.k[L];if(M&&M instanceof Array){return M}return false}function F(L,P){L=m(L);if(!P.k){return L}var r="";var O=0;P.lR.lastIndex=0;var M=P.lR.exec(L);while(M){r+=L.substr(O,M.index-O);var N=z(P,M);if(N){x+=N[1];r+='<span class="'+N[0]+'">'+M[0]+"</span>"}else{r+=M[0]}O=P.lR.lastIndex;M=P.lR.exec(L)}return r+L.substr(O,L.length-O)}function J(L,M){if(M.sL&&e[M.sL]){var r=d(M.sL,L);x+=r.keyword_count;return r.value}else{return F(L,M)}}function I(M,r){var L=M.cN?'<span class="'+M.cN+'">':"";if(M.rB){y+=L;M.buffer=""}else{if(M.eB){y+=m(r)+L;M.buffer=""}else{y+=L;M.buffer=r}}D.push(M);A+=M.r}function G(N,M,Q){var R=D[D.length-1];if(Q){y+=J(R.buffer+N,R);return false}var P=q(M,R);if(P){y+=J(R.buffer+N,R);I(P,M);return P.rB}var L=v(D.length-1,M);if(L){var O=R.cN?"</span>":"";if(R.rE){y+=J(R.buffer+N,R)+O}else{if(R.eE){y+=J(R.buffer+N,R)+O+m(M)}else{y+=J(R.buffer+N+M,R)+O}}while(L>1){O=D[D.length-2].cN?"</span>":"";y+=O;L--;D.length--}var r=D[D.length-1];D.length--;D[D.length-1].buffer="";if(r.starts){I(r.starts,"")}return R.rE}if(w(M,R)){throw"Illegal"}}var E=e[B];var D=[E.dM];var A=0;var x=0;var y="";try{var s,u=0;E.dM.buffer="";do{s=p(C,u);var t=G(s[0],s[1],s[2]);u+=s[0].length;if(!t){u+=s[1].length}}while(!s[2]);if(D.length>1){throw"Illegal"}return{r:A,keyword_count:x,value:y}}catch(H){if(H=="Illegal"){return{r:0,keyword_count:0,value:m(C)}}else{throw H}}}function g(t){var p={keyword_count:0,r:0,value:m(t)};var r=p;for(var q in e){if(!e.hasOwnProperty(q)){continue}var s=d(q,t);s.language=q;if(s.keyword_count+s.r>r.keyword_count+r.r){r=s}if(s.keyword_count+s.r>p.keyword_count+p.r){r=p;p=s}}if(r.language){p.second_best=r}return p}function i(r,q,p){if(q){r=r.replace(/^((<[^>]+>|\t)+)/gm,function(t,w,v,u){return w.replace(/\t/g,q)})}if(p){r=r.replace(/\n/g,"<br>")}return r}function n(t,w,r){var x=h(t,r);var v=a(t);var y,s;if(v){y=d(v,x)}else{return}var q=c(t);if(q.length){s=document.createElement("pre");s.innerHTML=y.value;y.value=k(q,c(s),x)}y.value=i(y.value,w,r);var u=t.className;if(!u.match("(\\s|^)(language-)?"+v+"(\\s|$)")){u=u?(u+" "+v):v}if(/MSIE [678]/.test(navigator.userAgent)&&t.tagName=="CODE"&&t.parentNode.tagName=="PRE"){s=t.parentNode;var p=document.createElement("div");p.innerHTML="<pre><code>"+y.value+"</code></pre>";t=p.firstChild.firstChild;p.firstChild.cN=s.cN;s.parentNode.replaceChild(p.firstChild,s)}else{t.innerHTML=y.value}t.className=u;t.result={language:v,kw:y.keyword_count,re:y.r};if(y.second_best){t.second_best={language:y.second_best.language,kw:y.second_best.keyword_count,re:y.second_best.r}}}function o(){if(o.called){return}o.called=true;var r=document.getElementsByTagName("pre");for(var p=0;p<r.length;p++){var q=b(r[p]);if(q){n(q,hljs.tabReplace)}}}function l(){if(window.addEventListener){window.addEventListener("DOMContentLoaded",o,false);window.addEventListener("load",o,false)}else{if(window.attachEvent){window.attachEvent("onload",o)}else{window.onload=o}}}var e={};this.LANGUAGES=e;this.highlight=d;this.highlightAuto=g;this.fixMarkup=i;this.highlightBlock=n;this.initHighlighting=o;this.initHighlightingOnLoad=l;this.IR="[a-zA-Z][a-zA-Z0-9_]*";this.UIR="[a-zA-Z_][a-zA-Z0-9_]*";this.NR="\\b\\d+(\\.\\d+)?";this.CNR="\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)";this.BNR="\\b(0b[01]+)";this.RSR="!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|\\.|-|-=|/|/=|:|;|<|<<|<<=|<=|=|==|===|>|>=|>>|>>=|>>>|>>>=|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~";this.ER="(?![\\s\\S])";this.BE={b:"\\\\.",r:0};this.ASM={cN:"string",b:"'",e:"'",i:"\\n",c:[this.BE],r:0};this.QSM={cN:"string",b:'"',e:'"',i:"\\n",c:[this.BE],r:0};this.CLCM={cN:"comment",b:"//",e:"$"};this.CBLCLM={cN:"comment",b:"/\\*",e:"\\*/"};this.HCM={cN:"comment",b:"#",e:"$"};this.NM={cN:"number",b:this.NR,r:0};this.CNM={cN:"number",b:this.CNR,r:0};this.BNM={cN:"number",b:this.BNR,r:0};this.inherit=function(r,s){var p={};for(var q in r){p[q]=r[q]}if(s){for(var q in s){p[q]=s[q]}}return p}}();hljs.LANGUAGES.cpp=function(){var a={keyword:{"false":1,"int":1,"float":1,"while":1,"private":1,"char":1,"catch":1,"export":1,virtual:1,operator:2,sizeof:2,dynamic_cast:2,typedef:2,const_cast:2,"const":1,struct:1,"for":1,static_cast:2,union:1,namespace:1,unsigned:1,"long":1,"throw":1,"volatile":2,"static":1,"protected":1,bool:1,template:1,mutable:1,"if":1,"public":1,friend:2,"do":1,"return":1,"goto":1,auto:1,"void":2,"enum":1,"else":1,"break":1,"new":1,extern:1,using:1,"true":1,"class":1,asm:1,"case":1,typeid:1,"short":1,reinterpret_cast:2,"default":1,"double":1,register:1,explicit:1,signed:1,typename:1,"try":1,"this":1,"switch":1,"continue":1,wchar_t:1,inline:1,"delete":1,alignof:1,char16_t:1,char32_t:1,constexpr:1,decltype:1,noexcept:1,nullptr:1,static_assert:1,thread_local:1,restrict:1,_Bool:1,complex:1},built_in:{std:1,string:1,cin:1,cout:1,cerr:1,clog:1,stringstream:1,istringstream:1,ostringstream:1,auto_ptr:1,deque:1,list:1,queue:1,stack:1,vector:1,map:1,set:1,bitset:1,multiset:1,multimap:1,unordered_set:1,unordered_map:1,unordered_multiset:1,unordered_multimap:1,array:1,shared_ptr:1}};return{dM:{k:a,i:"</",c:[hljs.CLCM,hljs.CBLCLM,hljs.QSM,{cN:"string",b:"'\\\\?.",e:"'",i:"."},{cN:"number",b:"\\b(\\d+(\\.\\d*)?|\\.\\d+)(u|U|l|L|ul|UL|f|F)"},hljs.CNM,{cN:"preprocessor",b:"#",e:"$"},{cN:"stl_container",b:"\\b(deque|list|queue|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array)\\s*<",e:">",k:a,r:10,c:["self"]}]}}}();hljs.LANGUAGES.r={dM:{c:[hljs.HCM,{cN:"number",b:"\\b0[xX][0-9a-fA-F]+[Li]?\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\b\\d+(?:[eE][+\\-]?\\d*)?L\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\b\\d+\\.(?!\\d)(?:i\\b)?",e:hljs.IMMEDIATE_RE,r:1},{cN:"number",b:"\\b\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d*)?i?\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"number",b:"\\.\\d+(?:[eE][+\\-]?\\d*)?i?\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"keyword",b:"(?:tryCatch|library|setGeneric|setGroupGeneric)\\b",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\.\\.\\.",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\.\\.\\d+(?![\\w.])",e:hljs.IMMEDIATE_RE,r:10},{cN:"keyword",b:"\\b(?:function)",e:hljs.IMMEDIATE_RE,r:2},{cN:"keyword",b:"(?:if|in|break|next|repeat|else|for|return|switch|while|try|stop|warning|require|attach|detach|source|setMethod|setClass)\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"literal",b:"(?:NA|NA_integer_|NA_real_|NA_character_|NA_complex_)\\b",e:hljs.IMMEDIATE_RE,r:10},{cN:"literal",b:"(?:NULL|TRUE|FALSE|T|F|Inf|NaN)\\b",e:hljs.IMMEDIATE_RE,r:1},{cN:"identifier",b:"[a-zA-Z.][a-zA-Z0-9._]*\\b",e:hljs.IMMEDIATE_RE,r:0},{cN:"operator",b:"<\\-(?!\\s*\\d)",e:hljs.IMMEDIATE_RE,r:2},{cN:"operator",b:"\\->|<\\-",e:hljs.IMMEDIATE_RE,r:1},{cN:"operator",b:"%%|~",e:hljs.IMMEDIATE_RE},{cN:"operator",b:">=|<=|==|!=|\\|\\||&&|=|\\+|\\-|\\*|/|\\^|>|<|!|&|\\||\\$|:",e:hljs.IMMEDIATE_RE,r:0},{cN:"operator",b:"%",e:"%",i:"\\n",r:1},{cN:"identifier",b:"`",e:"`",r:0},{cN:"string",b:'"',e:'"',c:[hljs.BE],r:0},{cN:"string",b:"'",e:"'",c:[hljs.BE],r:0},{cN:"paren",b:"[[({\\])}]",e:hljs.IMMEDIATE_RE,r:0}]}};
+hljs.initHighlightingOnLoad();
+</script>
+
+<!-- MathJax scripts -->
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 13px;
+}
+
+body {
+  max-width: 800px;
+  margin: auto;
+  padding: 1em;
+  line-height: 20px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 {
+   font-size:2.2em;
+}
+
+h2 {
+   font-size:1.8em;
+}
+
+h3 {
+   font-size:1.4em;
+}
+
+h4 {
+   font-size:1.0em;
+}
+
+h5 {
+   font-size:0.9em;
+}
+
+h6 {
+   font-size:0.8em;
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre, img {
+  max-width: 100%;
+}
+pre {
+  overflow-x: auto;
+}
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code {
+  font-size: 92%;
+  border: 1px solid #ccc;
+}
+
+code[class] {
+  background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * {
+      background: transparent !important;
+      color: black !important;
+      filter:none !important;
+      -ms-filter: none !important;
+   }
+
+   body {
+      font-size:12pt;
+      max-width:100%;
+   }
+
+   a, a:visited {
+      text-decoration: underline;
+   }
+
+   hr {
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote {
+      padding-right: 1em;
+      page-break-inside: avoid;
+   }
+
+   tr, img {
+      page-break-inside: avoid;
+   }
+
+   img {
+      max-width: 100% !important;
+   }
+
+   @page :left {
+      margin: 15mm 20mm 15mm 10mm;
+   }
+
+   @page :right {
+      margin: 15mm 10mm 15mm 20mm;
+   }
+
+   p, h2, h3 {
+      orphans: 3; widows: 3;
+   }
+
+   h2, h3 {
+      page-break-after: avoid;
+   }
+}
+</style>
+
+
+
+</head>
+
+<body>
+<h1>Writing Efficient R Code</h1>
+
+<p>Chris Paciorek, Department of Statistics, UC Berkeley</p>
+
+<h1>0) This Tutorial</h1>
+
+<p>This tutorial covers strategies for writing efficient R code by taking advantage of the underlying structure of how R works. In addition it covers tools and strategies  for timing and profiling R code.</p>
+
+<p>In the future, a screencast of the material may accompany this document.</p>
+
+<p>You should be able to work through this tutorial in any working R installation, including through RStudio. To work through it using R linked to a fast linear algebra package, you may want to use a virtual machine developed here at Berkeley, the <a href="http://bce.berkeley.edu">Berkeley Common Environment (BCE)</a>. BCE is a virtual Linux machine - basically it is a Linux computer that you can run within your own computer, regardless of whether you are using Windows, Mac, or Linux. This provides a common environment so that things behave the same for all of us. </p>
+
+<p>This tutorial assumes you have a working knowledge of R. </p>
+
+<p>Materials for this tutorial, including the R markdown file and associated code files that were used to create this document are available on Github at (<a href="https://github.com/berkeley-scf/tutorial-efficient-R">https://github.com/berkeley-scf/tutorial-efficient-R</a>).  You can download the files by doing a git clone from a terminal window on a UNIX-like machine, as follows:</p>
+
+<pre><code class="r">git clone https://github.com/berkeley-scf/tutorial-efficient-R
+</code></pre>
+
+<p>To create this HTML document, simply compile the corresponding R Markdown file in R as follows (the following will work from within BCE after cloning the repository as above).</p>
+
+<pre><code class="r">Rscript -e &quot;library(knitr); knit2html(&#39;efficient-R.Rmd&#39;)&quot;
+</code></pre>
+
+<p>This tutorial by Christopher Paciorek is licensed under a Creative Commons Attribution 3.0 Unported License.</p>
+
+<h1>1) Background</h1>
+
+<p>In part because R is an interpreted language and in part because R
+is very dynamic (objects can be modified essentially arbitrarily after
+being created), R can be slow. Hadley Wickham&#39;s Advanced R book has
+a section called <em>Performance</em> that discusses this in detail. However, there
+are a variety of ways that one can write efficient R code.</p>
+
+<p>In general, try to make use of R&#39;s built-in functions (including matrix
+operations and linear algebra), as these tend to be implemented
+internally (i.e., via compiled code in C or Fortran).  Sometimes you
+can figure out a trick to take your problem and transform it to make
+use of the built-in functions.</p>
+
+<p>Before you spend a lot of time trying to make your code go faster,
+it&#39;s best to first write transparent, easy-to-read code to help avoid
+bugs.  Then if it doesn&#39;t run fast enough, time the different parts of
+the code (profiling) to assess where the bottlenecks are. Concentrate
+your efforts on those parts of the code. Try out different
+specifications, checking that the results are the same as your
+original code.  And as you gain more experience, you&#39;ll get some
+intuition for what approaches might improve speed, but even with
+experience I find myself often surprised by what matters and what
+doesn&#39;t.</p>
+
+<p>Section 2 of this document discusses the use of fast linear algebra libraries, Section 3 discusses tools for timing and profiling code, and Section 4 discusses core strategies for writing efficient R code.</p>
+
+<h1>2) Fast linear algebra</h1>
+
+<p>One way to speed up a variety of operations in R (sometimes by as much as an order of magnitude) is to make sure your installation of R uses an optimized BLAS (Basic Linear Algebra Subroutines). The BLAS underlies all linear algebra, including costly calculations such as matrix-matrix multiplication and matrix decompositions such as the SVD and Cholesky decomposition. Some optimized BLAS packages are:</p>
+
+<ul>
+<li>Intel&#39;s <em>MKL</em></li>
+<li><em>OpenBLAS</em></li>
+<li>AMD&#39;s <em>ACML</em></li>
+<li><em>vecLib</em> for Macs</li>
+</ul>
+
+<p>To use an optimized BLAS, talk to your systems adminstrator, see <a href="https://cran.r-project.org/manuals.html">Section A.3 of the R Installation and Administration Manual</a>, or see <a href="http://statistics.berkeley.edu/computing/blas">these instructions to use <em>vecLib</em> BLAS on your own Mac</a>.</p>
+
+<p>Any calls to BLAS or to the LAPACK libraries that use BLAS to do higher-level linear algebra calculations will be nearly as fast as if you used C/C++ or Matlab, because R is using the compiled code from the BLAS and LAPACK libraries. </p>
+
+<p>In addition, the BLAS libraries above are threaded &ndash; they can use more than one core, and often will do so by default. More details in the tutorial on parallel programming. </p>
+
+<h1>3) Tools for assessing efficiency</h1>
+
+<h2>3.1) Benchmarking</h2>
+
+<p><em>system.time</em> is very handy for comparing the speed of different
+implementations. Here&#39;s a basic comparison of the time to calculate the row means of a matrix using a for loop compared to the built-in <em>rowMeans</em> function.</p>
+
+<pre><code class="r">n &lt;- 10000
+m &lt;- 1000
+x &lt;- matrix(rnorm(n*m), nrow = n)
+system.time({
+                mns &lt;- rep(NA, n)
+                for(i in 1:n) mns[i] &lt;- mean(x[i , ])
+         })
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.147   0.008   0.155
+</code></pre>
+
+<pre><code class="r">system.time(rowMeans(x))
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.025   0.000   0.025
+</code></pre>
+
+<p>To time code that runs very quickly, you may want to use the <em>microbenchmark</em>
+package. Of course one would generally only care about such timing if a larger operation does the quick calculation very many times. Here&#39;s a comparison of different ways of accessing an element of a dataframe.</p>
+
+<pre><code class="r">library(microbenchmark)
+df &lt;- data.frame(vals = 1:3, labs = c(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;))
+microbenchmark(
+  df[2,1],
+  df$vals[2],
+  df[2, &#39;vals&#39;]
+)
+</code></pre>
+
+<pre><code>## Unit: microseconds
+##           expr    min      lq     mean  median      uq    max neval cld
+##       df[2, 1] 14.043 14.8450 15.76990 15.2300 15.7980 26.964   100   b
+##     df$vals[2]  7.818  9.3005 10.72625 10.1495 10.5745 20.923   100  a 
+##  df[2, &quot;vals&quot;] 13.930 15.0760 16.32524 15.3395 15.8700 52.171   100   b
+</code></pre>
+
+<p>The <em>rbenchmark</em> package provides a nice wrapper function, <em>benchmark</em>,
+that automates timings and comparisons. </p>
+
+<pre><code class="r">library(rbenchmark)
+# speed of one calculation
+n &lt;- 1000
+x &lt;- matrix(rnorm(n^2), n)
+benchmark(crossprod(x), replications = 10,
+          columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##           test elapsed replications
+## 1 crossprod(x)   0.414           10
+</code></pre>
+
+<pre><code class="r"># comparing different approaches to a task
+benchmark(
+  {mns &lt;- rep(NA, n); for(i in 1:n) mns[i] &lt;- mean(x[i , ])},
+  rowMeans(x), 
+  replications = 10,
+  columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                                                                     test
+## 1 {\n    mns &lt;- rep(NA, n)\n    for (i in 1:n) mns[i] &lt;- mean(x[i, ])\n}
+## 2                                                            rowMeans(x)
+##   elapsed replications
+## 1   0.149           10
+## 2   0.027           10
+</code></pre>
+
+<p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
+
+<h2>3.2) Profiling</h2>
+
+<p>The <em>Rprof</em> function will show you how much time is spent in
+different functions, which can help you pinpoint bottlenecks in your
+code. </p>
+
+<p>Here&#39;s a function that works with a correlation matrix such as one
+might have for time series data. Basically, it creates a matrix of time lags (<em>dd</em>) and
+computes the correlation between the outcome for all pairs of times, based on the time
+lag between the pair of times. Then it computes the Cholesky factor of the correlation 
+matrix so that it can generate a random time series in the last line. The question
+one might ask is which part(s) of the code take the most time.</p>
+
+<pre><code class="r">makeTS &lt;- function(param, len){
+    times &lt;- seq(0, 1, length = len)
+    dd &lt;- rdist(times)
+    C &lt;- exp(-dd/param)
+    U &lt;- chol(C)
+    white &lt;- rnorm(len)
+    return(crossprod(U, white))
+}
+
+library(fields)
+Rprof(&quot;makeTS.prof&quot;)
+out &lt;- makeTS(0.1, 1000)
+Rprof(NULL)
+summaryRprof(&quot;makeTS.prof&quot;)
+</code></pre>
+
+<p>Here&#39;s the result for the <em>makeTS</em> function from the demo code
+file:</p>
+
+<pre><code>$by.self   self.time self.pct total.time total.pct 
+&quot;.Call&quot;         0.38    48.72       0.38     48.72 
+&quot;.Fortran&quot;      0.22    28.21       0.22     28.21 
+&quot;matrix&quot;        0.08    10.26       0.30     38.46 
+&quot;exp&quot;           0.08    10.26       0.08     10.26 
+&quot;/&quot;             0.02     2.56       0.02      2.56
+$by.total         total.time total.pct self.time self.pct 
+&quot;makeTS&quot;                0.78    100.00      0.00     0.00 
+&quot;.Call&quot;                 0.38     48.72      0.38    48.72 
+&quot;chol.default&quot;          0.38     48.72      0.00     0.00 
+&quot;chol&quot;                  0.38     48.72      0.00     0.00 
+&quot;standardGeneric&quot;       0.38     48.72      0.00     0.00 
+&quot;matrix&quot;                0.30     38.46      0.08    10.26 
+&quot;rdist&quot;                 0.30     38.46      0.00     0.00 
+&quot;.Fortran&quot;              0.22     28.21      0.22    28.21 
+&quot;exp&quot;                   0.08     10.26      0.08    10.26 
+&quot;/&quot;                     0.02      2.56      0.02     2.56
+$sample.interval [1] 0.02
+$sampling.time [1] 0.78
+</code></pre>
+
+<p><em>Rprof</em> tells how much time was spent in each function alone
+(the <em>self</em> columns); this does not include time spent in
+function calls made within the function. It also shows the aggregate time spent in
+a function and all of the functions that it calls (the <em>total</em>
+columns). Usually the former is going to be more useful, but in some
+cases we need to decipher what is going on based on the latter.
+The two different tables (<em>$by.self</em> and <em>$by.total</em>) show essentially the same information but 
+sorted either based on the self percentages or the total percentages.</p>
+
+<p>The <em>time</em> columns show clock time in seconds, while the <em>pct</em> columns
+show the percentage of the time spent. </p>
+
+<p>Let&#39;s figure out what is going on here. In the first table, the self time tells us that
+<em>.Call</em> (a call to C code) and <em>.Fortran</em> (a call to Fortran
+code) take up most of the time, followed by <em>matrix</em> and <em>exp</em>. Looking at the
+total time and seeing in <em>chol.default</em> that <em>.Call</em> is
+used (you would have to go in and look at the <em>La_chol</em> function
+to verify that <em>.Internal</em> uses <em>.Call</em>) and in <em>rdist</em> that <em>.Fortran</em> and
+<em>matrix</em> are used we can infer that about 49% of the time
+is being spent in the Cholesky and 38% in the <em>rdist</em> calculation,
+with 10% in <em>exp</em>. As we increase the number of time points,
+the time taken up by the Cholesky would increase since that calculation
+is order of \(n^{3}\) while the others are order \(n^{2}\).</p>
+
+<p>In this case, since the Cholesky and the main calculations in <em>rdist</em>, as well as <em>exp</em>,
+are all done in compiled C or Fortran code, there is probably not much we can do
+to speed this up (apart from using an optimized BLAS, which is essential). But in other cases profiling may reveal the slow steps in a piece of code. </p>
+
+<p>Note that <em>Rprof</em> works by sampling - every little while during a calculation it finds out what function R is in and saves that information to the file given as the argument to <em>Rprof</em>. So if you try to profile code that finishes really quickly, there&#39;s not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.</p>
+
+<p>You might also check out some packages that help with profiling: <em>proftools</em>,
+<em>profr</em>, and <em>lineprof</em>.</p>
+
+<p><em>Warning</em>: <em>Rprof</em> conflicts with threaded linear algebra,
+so you may need to set OMP_NUM_THREADS to 1 to disable threaded
+linear algebra if you profile code that involves linear algebra. </p>
+
+<h1>4) Strategies for improving efficiency</h1>
+
+<h2>4.1) Pre-allocate memory</h2>
+
+<p>It is very inefficient to iteratively add elements to a vector, matrix,
+data frame, array or list (e.g., using <em>c</em>, <em>cbind</em>,
+<em>rbind</em>, etc. to add elements one at a time). Instead, create the full object in advance
+(this is equivalent to variable initialization in compiled languages)
+and then fill in the appropriate elements. The reason is that when
+R appends to an existing object, it creates a new copy and as the
+object gets big, most of the computation involves the repeated 
+memory allocation to create the new objects.  Here&#39;s
+an illustrative example, but of course we would not fill a vector
+like this using loops because we would in practice use vectorized calculations.</p>
+
+<pre><code class="r">n &lt;- 10000
+fun1 &lt;- function(n) {
+   x &lt;- 1
+   for(i in 2:n) x &lt;- c(x, i)
+   return(x)
+}
+fun2 &lt;- function(n) {
+   x &lt;- rep(as.numeric(NA), n)
+   for(i in 1:n) x[i] &lt;- i
+   return(x)
+}
+fun3 &lt;- function(n) {
+  x &lt;- 1:n
+  return(x)
+}
+benchmark(fun1(n), fun2(n), fun3(n),
+replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##      test elapsed replications
+## 1 fun1(n)   1.054           10
+## 2 fun2(n)   0.064           10
+## 3 fun3(n)   0.001           10
+</code></pre>
+
+<p>It&#39;s not necessary to use <em>as.numeric</em> above though it saves
+a bit of time. <strong>Challenge</strong>: figure out why I have <code>as.numeric(NA)</code>
+and not just <code>NA</code>.</p>
+
+<p>In some cases, we can speed up the initialization by initializing a vector of length one and then changing its length and/or dimension, although in  many practical
+circumstances this would be overkill.</p>
+
+<p>For example, for matrices, start with a vector of length one, change the length, and then change the
+dimensions</p>
+
+<pre><code class="r">nr &lt;- nc &lt;- 2000
+benchmark(
+   x &lt;- matrix(as.numeric(NA), nr, nc),
+   {x &lt;- as.numeric(NA); length(x) &lt;- nr * nc; dim(x) &lt;- c(nr, nc)},
+replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                                                                               test
+## 2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
+## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
+##   elapsed replications
+## 2   0.039           10
+## 1   0.445           10
+</code></pre>
+
+<p>For lists, we can do this</p>
+
+<pre><code class="r">myList &lt;- vector(&quot;list&quot;, length = n)
+</code></pre>
+
+<h2>4.2) Vectorized calculations</h2>
+
+<p>One key way to write efficient R code is to take advantage of R&#39;s
+vectorized operations.</p>
+
+<pre><code class="r">n &lt;- 1e6
+x &lt;- rnorm(n)
+benchmark(
+    x2 &lt;- x^2,
+    { x2 &lt;- as.numeric(NA)
+      length(x2) &lt;- n
+      for(i in 1:n) { x2[i] &lt;- x[i]^2 } },
+    replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                                                                                                        test
+## 2 {\n    x2 &lt;- as.numeric(NA)\n    length(x2) &lt;- n\n    for (i in 1:n) {\n        x2[i] &lt;- x[i]^2\n    }\n}
+## 1                                                                                                 x2 &lt;- x^2
+##   elapsed replications
+## 2  11.231           10
+## 1   0.017           10
+</code></pre>
+
+<p>So what is different in how R handles the calculations above that
+explains the huge disparity in efficiency? The vectorized calculation is being done natively
+in C in a for loop. The explicit R for loop involves executing the for
+loop in R with repeated calls to C code at each iteration. This involves a lot
+of overhead because of the repeated processing of the R code inside the loop.</p>
+
+<p>You can
+usually get a sense for how quickly an R call will pass things along
+to C or Fortran by looking at the body of the relevant function(s) being called
+and looking for <em>.Primitive</em>, <em>.Internal</em>, <em>.C</em>, <em>.Call</em>,
+or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
+<em>mean.default</em>, and <em>chol.default</em>. </p>
+
+<pre><code class="r">`+`
+</code></pre>
+
+<pre><code>## function (e1, e2)  .Primitive(&quot;+&quot;)
+</code></pre>
+
+<pre><code class="r">mean.default
+</code></pre>
+
+<pre><code>## function (x, trim = 0, na.rm = FALSE, ...) 
+## {
+##     if (!is.numeric(x) &amp;&amp; !is.complex(x) &amp;&amp; !is.logical(x)) {
+##         warning(&quot;argument is not numeric or logical: returning NA&quot;)
+##         return(NA_real_)
+##     }
+##     if (na.rm) 
+##         x &lt;- x[!is.na(x)]
+##     if (!is.numeric(trim) || length(trim) != 1L) 
+##         stop(&quot;&#39;trim&#39; must be numeric of length one&quot;)
+##     n &lt;- length(x)
+##     if (trim &gt; 0 &amp;&amp; n) {
+##         if (is.complex(x)) 
+##             stop(&quot;trimmed means are not defined for complex data&quot;)
+##         if (anyNA(x)) 
+##             return(NA_real_)
+##         if (trim &gt;= 0.5) 
+##             return(stats::median(x, na.rm = FALSE))
+##         lo &lt;- floor(n * trim) + 1
+##         hi &lt;- n + 1 - lo
+##         x &lt;- sort.int(x, partial = unique(c(lo, hi)))[lo:hi]
+##     }
+##     .Internal(mean(x))
+## }
+## &lt;bytecode: 0x1feb3f8&gt;
+## &lt;environment: namespace:base&gt;
+</code></pre>
+
+<pre><code class="r">chol.default
+</code></pre>
+
+<pre><code>## function (x, pivot = FALSE, LINPACK = FALSE, tol = -1, ...) 
+## {
+##     if (is.complex(x)) 
+##         stop(&quot;complex matrices not permitted at present&quot;)
+##     .Internal(La_chol(as.matrix(x), pivot, tol))
+## }
+## &lt;bytecode: 0x3bc35a8&gt;
+## &lt;environment: namespace:base&gt;
+</code></pre>
+
+<p>Many R functions allow you to pass in vectors, and operate on those
+vectors in vectorized fashion. So before writing a for loop, look
+at the help information on the relevant function(s) to see if they
+operate in a vectorized fashion. Functions might take vectors for one or more of their arguments.</p>
+
+<pre><code class="r">address &lt;- c(&quot;Four score and seven years ago our fathers brought forth&quot;,
+             &quot; on this continent, a new nation, conceived in Liberty, &quot;,
+             &quot;and dedicated to the proposition that all men are created equal.&quot;)
+nchar(address)
+</code></pre>
+
+<pre><code>## [1] 56 56 64
+</code></pre>
+
+<pre><code class="r"># use a vector in the 2nd and 3rd arguments, but not the first
+startIndices = seq(1, by = 3, length = nchar(address[1])/3)
+startIndices
+</code></pre>
+
+<pre><code>##  [1]  1  4  7 10 13 16 19 22 25 28 31 34 37 40 43 46 49 52 55
+</code></pre>
+
+<pre><code class="r">substring(address[1], startIndices, startIndices + 1)
+</code></pre>
+
+<pre><code>##  [1] &quot;Fo&quot; &quot;r &quot; &quot;co&quot; &quot;e &quot; &quot;nd&quot; &quot;se&quot; &quot;en&quot; &quot;ye&quot; &quot;rs&quot; &quot;ag&quot; &quot; o&quot; &quot;r &quot; &quot;at&quot; &quot;er&quot;
+## [15] &quot; b&quot; &quot;ou&quot; &quot;ht&quot; &quot;fo&quot; &quot;th&quot;
+</code></pre>
+
+<p><strong>Challenge</strong>: Consider the chi-squared statistic involved in
+a test of independence in a contingency table:
+\[
+\chi^{2}=\sum_{i}\sum_{j}\frac{(y_{ij}-e_{ij})^{2}}{e_{ij}},\,\,\,\, e_{ij}=\frac{y_{i\cdot}y_{\cdot j}}{y_{\cdot\cdot}}
+\]
+where \(y_{i\cdot}=\sum_{j}y_{ij}\) and \(y_{\cdot j} = \sum_{i} y_{ij}\). Write this in a vectorized way
+without any loops.  Note that &#39;vectorized&#39; calculations also work
+with matrices and arrays.</p>
+
+<p>Vectorized operations can sometimes be faster than built-in functions 
+(note here the <em>ifelse</em> is notoriously slow),
+and clever vectorized calculations even better, though sometimes the
+code is uglier. Here&#39;s an example of setting all negative values in a 
+vector to zero.</p>
+
+<pre><code class="r">x &lt;- rnorm(1000000)
+benchmark(
+   truncx &lt;- ifelse(x &gt; 0, x, 0),
+   {truncx &lt;- x; truncx[x &lt; 0] &lt;- 0},
+   truncx &lt;- x * (x &gt; 0),
+   replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                                            test elapsed replications
+## 1                 truncx &lt;- ifelse(x &gt; 0, x, 0)   1.571           10
+## 2 {\n    truncx &lt;- x\n    truncx[x &lt; 0] &lt;- 0\n}   0.164           10
+## 3                         truncx &lt;- x * (x &gt; 0)   0.083           10
+</code></pre>
+
+<p>Additional tips:</p>
+
+<ul>
+<li>If you do need to loop over dimensions of a matrix or array, if possible
+loop over the smallest dimension and use the vectorized calculation
+on the larger dimension(s). For example if you have a 10000 by 10 matrix, try to set
+up your problem so you can loop over the 10 columns rather than the 10000 rows.</li>
+<li>In general, looping over columns is likely to be faster than looping over rows
+given R&#39;s column-major ordering (matrices are stored in memory as a long array in which values in a column are adjacent to each other).</li>
+<li>You can use direct arithmetic operations to add/subtract/multiply/divide
+a vector by each column of a matrix, e.g. <code>A*b</code> does element-wise multiplication of
+each column of <em>A</em> by a vector <em>b</em>. If you need to operate
+by row, you can do it by transposing the matrix. </li>
+</ul>
+
+<p>Caution: relying on R&#39;s recycling rule in the context of vectorized
+operations, such as is done when direct-multiplying a matrix by a
+vector to scale the rows relative to each other, can be dangerous as the code is not transparent
+and poses greater dangers of bugs. In some cases you may want to
+first write the code transparently and
+then compare the more efficient code to make sure the results are the same. It&#39;s also a good idea to  comment your code in such cases.</p>
+
+<h2>4.3) Using <em>apply</em> and specialized functions</h2>
+
+<p>Another core efficiency strategy is to use the <em>apply</em> functionality.
+Even better than <em>apply</em> for calculating sums or means of columns
+or rows (it also can be used for arrays) is {row,col}{Sums,Means}.</p>
+
+<pre><code class="r">n &lt;- 3000; x &lt;- matrix(rnorm(n * n), nr = n)
+benchmark(
+   out &lt;- apply(x, 1, mean),
+   out &lt;- rowMeans(x),
+   replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                       test elapsed replications
+## 1 out &lt;- apply(x, 1, mean)   1.679           10
+## 2       out &lt;- rowMeans(x)   0.233           10
+</code></pre>
+
+<p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
+off a mean from each column, using <em>sweep</em></p>
+
+<pre><code class="r">system.time(out &lt;- sweep(x, 2, STATS = colMeans(x), FUN = &quot;-&quot;))
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.175   0.004   0.178
+</code></pre>
+
+<p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
+that if we subtract a vector from a matrix, it subtracts each element
+of the vector from all the elements in the corresponding ROW. Hence the 
+need to transpose twice. </p>
+
+<pre><code class="r">system.time(out2 &lt;- t(t(x) - colMeans(x)))
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.097   0.012   0.108
+</code></pre>
+
+<pre><code class="r">identical(out, out2)
+</code></pre>
+
+<pre><code>## [1] TRUE
+</code></pre>
+
+<h3>Are <em>apply</em>, <em>lapply</em>, <em>sapply</em>, etc. faster than loops?</h3>
+
+<p>Using <em>apply</em> with matrices and versions of <em>apply</em> with lists may or may not be faster
+than looping but generally produces cleaner code. Whether looping
+is slower will depend on whether a substantial part of the work is
+in the overhead of the looping or in the time required by the function
+evaluation on each of the elements. If you&#39;re worried about speed,
+it&#39;s a good idea to benchmark the <em>apply</em> variant against looping.</p>
+
+<p>Here&#39;s an example where <em>apply</em> is not faster than a loop. Similar
+examples can be constructed where <em>lapply</em> or <em>sapply</em> are not faster
+than writing a loop. </p>
+
+<pre><code class="r">n &lt;- 500000; nr &lt;- 10000; nCalcs &lt;- n/nr
+mat &lt;- matrix(rnorm(n), nrow = nr)
+times &lt;- 1:nr
+system.time(
+  out1 &lt;- apply(mat, 2, function(vec) {
+                         mod = lm(vec ~ times)
+                         return(mod$coef[2])
+                     })) 
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.315   0.004   0.319
+</code></pre>
+
+<pre><code class="r">system.time({
+                out2 &lt;- rep(NA, nCalcs)
+                for(i in 1:nCalcs){
+                    out2[i] = lm(mat[ , i] ~ times)$coef[2]
+                }
+            }) 
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.316   0.016   0.332
+</code></pre>
+
+<h2>4.4) Matrix algebra efficiency</h2>
+
+<p>Often calculations that are not explicitly linear algebra calculations
+can be done as matrix algebra. For example, we can sum the rows of a matrix by multiplying by a vector of ones. It&#39;s actually even faster with
+<em>rowSums</em>, so it&#39;s not a great example, but this sort of trick
+does come in handy in surprising places. </p>
+
+<pre><code class="r">mat &lt;- matrix(rnorm(500*500), 500)
+benchmark(apply(mat, 1, sum),
+    mat %*% rep(1, ncol(mat)),
+    rowSums(mat),
+    replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##                        test elapsed replications
+## 1        apply(mat, 1, sum)   0.042           10
+## 2 mat %*% rep(1, ncol(mat))   0.009           10
+## 3              rowSums(mat)   0.007           10
+</code></pre>
+
+<p>On the other hand, big matrix operations can be slow. <strong>Challenge</strong>: Suppose you
+want a new matrix that computes the differences between successive
+columns of a matrix of arbitrary size. How would you do this as matrix
+algebra operations? It&#39;s possible to write it as multiplying the matrix
+by another matrix that contains 0s, 1s, and -1s in appropriate places.
+ Here it turns out that the
+<em>for</em> loop is much faster than matrix multiplication. However,
+there is a way to do it faster as matrix direct subtraction. </p>
+
+<p>When doing matrix algebra, the order in which you do operations can
+be critical for efficiency. How should I order the following calculation?</p>
+
+<pre><code class="r">n &lt;- 5000
+A &lt;- matrix(rnorm(5000 * 5000), 5000)
+B &lt;- matrix(rnorm(5000 * 5000), 5000)
+x &lt;- rnorm(5000)
+system.time(
+  res1 &lt;- A %*% B %*% x
+)
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##  22.203   5.396   3.966
+</code></pre>
+
+<pre><code class="r">system.time(
+  res2 &lt;- A %*% (B %*% x)
+)
+</code></pre>
+
+<pre><code>##    user  system elapsed 
+##   0.209   0.000   0.209
+</code></pre>
+
+<p>Why is the second order much faster?</p>
+
+<p>We can use the matrix direct product (i.e., <code>A*B</code>) to do
+some manipulations much more quickly than using matrix multiplication.
+<strong>Challenge</strong>: How can I use the direct product to find the trace
+of a matrix, \(XY\)? </p>
+
+<p>Finally, when working with diagonal matrices, you can generally get much faster results by being smart. The following operations: \(X+D\), \(DX\), \(XD\)
+are mathematically the sum of two matrices and products of two matrices.
+But we can do the computation without using two full matrices.
+<strong>Challenge</strong>: How?</p>
+
+<pre><code class="r">n &lt;- 1000
+X &lt;- matrix(rnorm(n^2), n) 
+diagvals &lt;- rnorm(n)
+D = diag(diagvals)
+# the following lines are very inefficient
+summedMat &lt;- X + D
+prodMat1 &lt;- D %*% X
+prodMat2 &lt;- X %*% D
+# How can we do each of those operations much more quickly?
+</code></pre>
+
+<p>More generally, sparse matrices and structured matrices (such as block
+diagonal matrices) can generally be worked with MUCH more efficiently
+than treating them as arbitrary matrices. The R packages <em>spam</em> (for arbitrary
+sparse matrices), <em>bdsmatrix</em> (for block-diagonal matrices),
+and <em>Matrix</em> (for a variety of sparse matrix types) can help, as can specialized code available in other languages,
+such as C and Fortran packages.</p>
+
+<h2>4.5) Fast mapping/lookup tables</h2>
+
+<p>Sometimes you need to map between two vectors. E.g., 
+\(y_{ij}\sim\mathcal{N}(\mu_{j},\sigma^{2})\)
+is a basic ANOVA type structure, where multiple observations in group \(j\) 
+are associated with a common mean, \(\mu_j\). </p>
+
+<p>How can we quickly look up the mean associated with each observation?
+A good strategy is to create a vector, <em>grp</em>, that gives a numeric
+mapping of the observations to their cluster. Then you can access
+the \(\mu\) value relevant for each observation as: <code>mus[grp]</code>. This requires
+that <em>grp</em> correctly map to the right elements of <em>mus</em>.</p>
+
+<p>The <em>match</em> function can help in creating numeric indices that can then be used for lookups. 
+Here&#39;s how you would create an index vector, <em>grp</em>, if it doesn&#39;t already exist.</p>
+
+<pre><code class="r">df &lt;- data.frame(
+    id = 1:5,
+    clusterLabel = c(&#39;C&#39;, &#39;B&#39;, &#39;B&#39;, &#39;A&#39;, &#39;C&#39;)) 
+info &lt;- data.frame(
+    grade = c(&#39;A&#39;, &#39;B&#39;, &#39;C&#39;),
+    numGrade = c(95, 85, 75),
+    fail = c(FALSE, FALSE, TRUE) )
+grp &lt;- match(df$clusterLabel, info$grade) 
+df$numGrade = info$numGrade[grp]
+df
+</code></pre>
+
+<pre><code>##   id clusterLabel numGrade
+## 1  1            C       75
+## 2  2            B       85
+## 3  3            B       85
+## 4  4            A       95
+## 5  5            C       75
+</code></pre>
+
+<p>R allows you to look up elements of vector by name.
+For example:</p>
+
+<pre><code class="r">vals &lt;- rnorm(10)
+names(vals) &lt;- letters[1:10]
+select &lt;- c(&quot;h&quot;, &quot;h&quot;, &quot;a&quot;, &quot;c&quot;)
+vals[select]
+</code></pre>
+
+<pre><code>##          h          h          a          c 
+##  0.2511293  0.2511293 -0.4466439  0.2898673
+</code></pre>
+
+<p>You can do similar things in terms of looking up by name with dimension
+names of matrices/arrays, row and column names of dataframes, and
+named lists.</p>
+
+<p>However, looking things up by name can be slow relative to looking up by index.
+Here&#39;s a toy example where we have a vector or list with a million elements and
+the character names of the elements are just the character versions of the 
+indices of the elements.  </p>
+
+<pre><code class="r">n &lt;- 1000000
+x &lt;- 1:n
+xL &lt;- as.list(x)
+nms &lt;- as.character(x)
+names(x) &lt;- nms
+names(xL) &lt;- nms
+benchmark(
+    x[500000],  # index lookup in vector
+    x[&quot;500000&quot;], # name lookup in vector
+    xL[[500000]], # index lookup in list
+    xL[[&quot;500000&quot;]], # name lookup in list
+  replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##             test elapsed replications
+## 2    x[&quot;500000&quot;]   0.453           10
+## 1       x[5e+05]   0.000           10
+## 4 xL[[&quot;500000&quot;]]   0.052           10
+## 3    xL[[5e+05]]   0.000           10
+</code></pre>
+
+<p>Lookup by name is slow because R needs to scan through the objects
+one by one until it finds the one with the name it is looking for.
+In contrast, to look up by index, R can just go directly to the position of interest.</p>
+
+<p>In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code. </p>
+
+<pre><code class="r">xEnv &lt;- as.environment(xL)  # convert from a named list
+xEnv$&quot;500000&quot;  
+</code></pre>
+
+<pre><code>## [1] 500000
+</code></pre>
+
+<pre><code class="r"># I need quotes above because numeric; otherwise xEnv$nameOfObject is fine
+xEnv[[&quot;500000&quot;]]
+</code></pre>
+
+<pre><code>## [1] 500000
+</code></pre>
+
+<pre><code class="r">benchmark(
+  x[500000],
+  xL[[500000]],
+  xEnv[[&quot;500000&quot;]],
+  xEnv$&quot;500000&quot;,
+  replications = 10000, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+</code></pre>
+
+<pre><code>##               test elapsed replications
+## 1         x[5e+05]   0.026        10000
+## 3 xEnv[[&quot;500000&quot;]]   0.030        10000
+## 4    xEnv$&quot;500000&quot;   0.031        10000
+## 2      xL[[5e+05]]   0.016        10000
+</code></pre>
+
+<pre><code class="r">microbenchmark(
+  x[500000],
+  xL[[500000]],
+  xEnv[[&quot;500000&quot;]],
+  xEnv$&quot;500000&quot;)
+</code></pre>
+
+<pre><code>## Unit: nanoseconds
+##              expr  min     lq    mean median   uq   max neval cld
+##          x[5e+05]  286  334.5  391.49  360.5  408  1881   100  a 
+##       xL[[5e+05]]  126  157.5  295.53  183.5  196  8172   100  a 
+##  xEnv[[&quot;500000&quot;]] 1195 1221.5 1478.58 1239.0 1264 23034   100   b
+##     xEnv$&quot;500000&quot; 1176 1218.5 1360.84 1258.5 1305  9762   100   b
+</code></pre>
+
+<p>The first benchmark indicates that lookup in an environment is nearly as fast as lookup by index in a vector or list, though the microbenchmark suggests that lookup in the environment is somewhat slower. </p>
+
+</body>
+
+</html>
