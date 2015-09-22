@@ -291,14 +291,14 @@ system.time({
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.147   0.008   0.155
+##   0.148   0.000   0.148
 </code></pre>
 
 <pre><code class="r">system.time(rowMeans(x))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.025   0.000   0.025
+##   0.024   0.000   0.025
 </code></pre>
 
 <p>To time code that runs very quickly, you may want to use the <em>microbenchmark</em>
@@ -314,10 +314,10 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: microseconds
-##           expr    min      lq     mean  median      uq    max neval cld
-##       df[2, 1] 14.043 14.8450 15.76990 15.2300 15.7980 26.964   100   b
-##     df$vals[2]  7.818  9.3005 10.72625 10.1495 10.5745 20.923   100  a 
-##  df[2, &quot;vals&quot;] 13.930 15.0760 16.32524 15.3395 15.8700 52.171   100   b
+##           expr    min     lq     mean  median      uq    max neval cld
+##       df[2, 1] 11.658 12.160 13.26206 12.6295 12.9875 46.060   100   b
+##     df$vals[2]  6.561  7.812  8.61942  8.2805  8.6920 17.546   100  a 
+##  df[2, &quot;vals&quot;] 11.481 12.280 13.12672 12.6135 12.9690 22.024   100   b
 </code></pre>
 
 <p>The <em>rbenchmark</em> package provides a nice wrapper function, <em>benchmark</em>,
@@ -332,7 +332,7 @@ benchmark(crossprod(x), replications = 10,
 </code></pre>
 
 <pre><code>##           test elapsed replications
-## 1 crossprod(x)   0.414           10
+## 1 crossprod(x)   0.174           10
 </code></pre>
 
 <pre><code class="r"># comparing different approaches to a task
@@ -347,8 +347,8 @@ benchmark(
 ## 1 {\n    mns &lt;- rep(NA, n)\n    for (i in 1:n) mns[i] &lt;- mean(x[i, ])\n}
 ## 2                                                            rowMeans(x)
 ##   elapsed replications
-## 1   0.149           10
-## 2   0.027           10
+## 1   0.138           10
+## 2   0.025           10
 </code></pre>
 
 <p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
@@ -478,9 +478,9 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun1(n)   1.054           10
-## 2 fun2(n)   0.064           10
-## 3 fun3(n)   0.001           10
+## 1 fun1(n)   1.034           10
+## 2 fun2(n)   0.061           10
+## 3 fun3(n)   0.000           10
 </code></pre>
 
 <p>It&#39;s not necessary to use <em>as.numeric</em> above though it saves
@@ -505,7 +505,7 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
 ##   elapsed replications
 ## 2   0.039           10
-## 1   0.445           10
+## 1   0.435           10
 </code></pre>
 
 <p>For lists, we can do this</p>
@@ -582,7 +582,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##     }
 ##     .Internal(mean(x))
 ## }
-## &lt;bytecode: 0x1feb3f8&gt;
+## &lt;bytecode: 0x26c1ed8&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -595,7 +595,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##         stop(&quot;complex matrices not permitted at present&quot;)
 ##     .Internal(La_chol(as.matrix(x), pivot, tol))
 ## }
-## &lt;bytecode: 0x3bc35a8&gt;
+## &lt;bytecode: 0x4296ed8&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -693,8 +693,8 @@ benchmark(
 </code></pre>
 
 <pre><code>##                       test elapsed replications
-## 1 out &lt;- apply(x, 1, mean)   1.679           10
-## 2       out &lt;- rowMeans(x)   0.233           10
+## 1 out &lt;- apply(x, 1, mean)   1.648           10
+## 2       out &lt;- rowMeans(x)   0.227           10
 </code></pre>
 
 <p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
@@ -704,7 +704,7 @@ off a mean from each column, using <em>sweep</em></p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.175   0.004   0.178
+##   0.161   0.032   0.193
 </code></pre>
 
 <p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
@@ -716,7 +716,7 @@ need to transpose twice. </p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.097   0.012   0.108
+##   0.100   0.016   0.116
 </code></pre>
 
 <pre><code class="r">identical(out, out2)
@@ -749,7 +749,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.315   0.004   0.319
+##   0.893   3.701   0.588
 </code></pre>
 
 <pre><code class="r">system.time({
@@ -761,7 +761,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.316   0.016   0.332
+##   0.893   3.663   0.573
 </code></pre>
 
 <h2>4.4) Matrix algebra efficiency</h2>
@@ -779,9 +779,9 @@ benchmark(apply(mat, 1, sum),
 </code></pre>
 
 <pre><code>##                        test elapsed replications
-## 1        apply(mat, 1, sum)   0.042           10
+## 1        apply(mat, 1, sum)   0.039           10
 ## 2 mat %*% rep(1, ncol(mat))   0.009           10
-## 3              rowSums(mat)   0.007           10
+## 3              rowSums(mat)   0.006           10
 </code></pre>
 
 <p>On the other hand, big matrix operations can be slow. <strong>Challenge</strong>: Suppose you
@@ -921,7 +921,7 @@ benchmark(
 </code></pre>
 
 <pre><code>##             test elapsed replications
-## 2    x[&quot;500000&quot;]   0.453           10
+## 2    x[&quot;500000&quot;]   0.444           10
 ## 1       x[5e+05]   0.000           10
 ## 4 xL[[&quot;500000&quot;]]   0.052           10
 ## 3    xL[[5e+05]]   0.000           10
