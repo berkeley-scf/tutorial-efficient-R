@@ -43,8 +43,8 @@ makeTS <- function(param, len){
 }
 
 library(fields)
-Rprof("makeTS.prof")
-out <- makeTS(0.1, 1000)
+Rprof("makeTS.prof", interval = 0.001)
+out <- makeTS(0.1, 3000)
 Rprof(NULL)
 summaryRprof("makeTS.prof")
 
