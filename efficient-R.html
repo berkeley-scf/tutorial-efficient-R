@@ -291,14 +291,14 @@ system.time({
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.139   0.008   0.148
+##   0.147   0.004   0.150
 </code></pre>
 
 <pre><code class="r">system.time(rowMeans(x))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.025   0.001   0.025
+##   0.025   0.000   0.026
 </code></pre>
 
 <p>To time code that runs very quickly, you may want to use the <em>microbenchmark</em>
@@ -314,10 +314,10 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: microseconds
-##           expr    min      lq     mean  median      uq    max neval cld
-##       df[2, 1] 14.293 14.8605 15.95770 15.1970 15.7055 27.017   100   b
-##     df$vals[2]  8.439  9.6455 10.45240 10.0495 10.4355 23.320   100  a 
-##  df[2, &quot;vals&quot;] 14.372 15.1050 16.76993 15.5000 15.7830 63.361   100   b
+##           expr    min      lq     mean median      uq    max neval cld
+##       df[2, 1] 17.196 17.9125 18.77422 18.221 18.5665 33.061   100   b
+##     df$vals[2]  9.955 11.0825 12.81084 12.296 12.6215 24.683   100  a 
+##  df[2, &quot;vals&quot;] 17.396 17.9995 19.59955 18.513 18.9355 57.366   100   b
 </code></pre>
 
 <p>The <em>rbenchmark</em> package provides a nice wrapper function, <em>benchmark</em>,
@@ -332,7 +332,7 @@ benchmark(crossprod(x), replications = 10,
 </code></pre>
 
 <pre><code>##           test elapsed replications
-## 1 crossprod(x)   0.174           10
+## 1 crossprod(x)   0.402           10
 </code></pre>
 
 <pre><code class="r"># comparing different approaches to a task
@@ -347,8 +347,8 @@ benchmark(
 ## 1 {\n    mns &lt;- rep(NA, n)\n    for (i in 1:n) mns[i] &lt;- mean(x[i, ])\n}
 ## 2                                                            rowMeans(x)
 ##   elapsed replications
-## 1   0.148           10
-## 2   0.026           10
+## 1   0.136           10
+## 2   0.027           10
 </code></pre>
 
 <p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
@@ -385,25 +385,40 @@ summaryRprof(&quot;makeTS.prof&quot;)
 <p>Here&#39;s the result for the <em>makeTS</em> function from the demo code
 file:</p>
 
-<pre><code>$by.self   self.time self.pct total.time total.pct 
-&quot;.Call&quot;         0.38    48.72       0.38     48.72 
-&quot;.Fortran&quot;      0.22    28.21       0.22     28.21 
-&quot;matrix&quot;        0.08    10.26       0.30     38.46 
-&quot;exp&quot;           0.08    10.26       0.08     10.26 
-&quot;/&quot;             0.02     2.56       0.02      2.56
-$by.total         total.time total.pct self.time self.pct 
-&quot;makeTS&quot;                0.78    100.00      0.00     0.00 
-&quot;.Call&quot;                 0.38     48.72      0.38    48.72 
-&quot;chol.default&quot;          0.38     48.72      0.00     0.00 
-&quot;chol&quot;                  0.38     48.72      0.00     0.00 
-&quot;standardGeneric&quot;       0.38     48.72      0.00     0.00 
-&quot;matrix&quot;                0.30     38.46      0.08    10.26 
-&quot;rdist&quot;                 0.30     38.46      0.00     0.00 
-&quot;.Fortran&quot;              0.22     28.21      0.22    28.21 
-&quot;exp&quot;                   0.08     10.26      0.08    10.26 
-&quot;/&quot;                     0.02      2.56      0.02     2.56
-$sample.interval [1] 0.02
-$sampling.time [1] 0.78
+<pre><code>$by.self
+                           self.time self.pct total.time total.pct
+&quot;.Fortran&quot;                     0.156    39.49      0.156     39.49
+&quot;chol.default&quot;                 0.111    28.10      0.111     28.10
+&quot;exp&quot;                          0.052    13.16      0.052     13.16
+&quot;matrix&quot;                       0.027     6.84      0.027      6.84
+&quot;rdist&quot;                        0.017     4.30      0.200     50.63
+&quot;/&quot;                            0.014     3.54      0.014      3.54
+&quot;-&quot;                            0.013     3.29      0.013      3.29
+&quot;&lt;Anonymous&gt;&quot;                  0.004     1.01      0.005      1.27
+&quot;.inheritedArgsExpression&quot;     0.001     0.25      0.001      0.25
+
+$by.total
+                           total.time total.pct self.time self.pct
+&quot;makeTS&quot;                        0.395    100.00     0.000     0.00
+&quot;rdist&quot;                         0.200     50.63     0.017     4.30
+&quot;.Fortran&quot;                      0.156     39.49     0.156    39.49
+&quot;standardGeneric&quot;               0.116     29.37     0.000     0.00
+&quot;chol&quot;                          0.112     28.35     0.000     0.00
+&quot;chol.default&quot;                  0.111     28.10     0.111    28.10
+&quot;exp&quot;                           0.052     13.16     0.052    13.16
+&quot;matrix&quot;                        0.027      6.84     0.027     6.84
+&quot;/&quot;                             0.014      3.54     0.014     3.54
+&quot;-&quot;                             0.013      3.29     0.013     3.29
+&quot;&lt;Anonymous&gt;&quot;                   0.005      1.27     0.004     1.01
+&quot;crossprod&quot;                     0.004      1.01     0.000     0.00
+&quot;.inheritedArgsExpression&quot;      0.001      0.25     0.001     0.25
+&quot;.findInheritedMethods&quot;         0.001      0.25     0.000     0.00
+
+$sample.interval
+[1] 0.001
+
+$sampling.time
+[1] 0.395
 </code></pre>
 
 <p><em>Rprof</em> tells how much time was spent in each function alone
@@ -478,7 +493,7 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun1(n)   1.036           10
+## 1 fun1(n)   1.026           10
 ## 2 fun2(n)   0.061           10
 ## 3 fun3(n)   0.000           10
 </code></pre>
@@ -504,8 +519,8 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ## 2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
 ## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
 ##   elapsed replications
-## 2   0.039           10
-## 1   0.437           10
+## 2   0.038           10
+## 1   0.435           10
 </code></pre>
 
 <p>For lists, we can do this</p>
@@ -582,7 +597,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##     }
 ##     .Internal(mean(x))
 ## }
-## &lt;bytecode: 0x194ced8&gt;
+## &lt;bytecode: 0x21d5130&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -595,7 +610,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##         stop(&quot;complex matrices not permitted at present&quot;)
 ##     .Internal(La_chol(as.matrix(x), pivot, tol))
 ## }
-## &lt;bytecode: 0x3524cb8&gt;
+## &lt;bytecode: 0x3da76a8&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -693,8 +708,8 @@ benchmark(
 </code></pre>
 
 <pre><code>##                       test elapsed replications
-## 1 out &lt;- apply(x, 1, mean)   1.672           10
-## 2       out &lt;- rowMeans(x)   0.225           10
+## 1 out &lt;- apply(x, 1, mean)   1.667           10
+## 2       out &lt;- rowMeans(x)   0.227           10
 </code></pre>
 
 <p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
@@ -704,7 +719,7 @@ off a mean from each column, using <em>sweep</em></p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.162   0.016   0.178
+##   0.173   0.004   0.177
 </code></pre>
 
 <p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
@@ -716,7 +731,7 @@ need to transpose twice. </p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.108   0.004   0.112
+##   0.098   0.012   0.110
 </code></pre>
 
 <pre><code class="r">identical(out, out2)
@@ -749,7 +764,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.853   3.639   0.576
+##   0.309   0.004   0.313
 </code></pre>
 
 <pre><code class="r">system.time({
@@ -761,7 +776,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.913   3.822   0.597
+##   0.307   0.012   0.318
 </code></pre>
 
 <h2>4.4) Matrix algebra efficiency</h2>
@@ -779,7 +794,7 @@ benchmark(apply(mat, 1, sum),
 </code></pre>
 
 <pre><code>##                        test elapsed replications
-## 1        apply(mat, 1, sum)   0.038           10
+## 1        apply(mat, 1, sum)   0.041           10
 ## 2 mat %*% rep(1, ncol(mat))   0.010           10
 ## 3              rowSums(mat)   0.006           10
 </code></pre>
@@ -921,9 +936,9 @@ benchmark(
 </code></pre>
 
 <pre><code>##             test elapsed replications
-## 2    x[&quot;500000&quot;]   0.471           10
+## 2    x[&quot;500000&quot;]   0.452           10
 ## 1       x[5e+05]   0.000           10
-## 4 xL[[&quot;500000&quot;]]   0.051           10
+## 4 xL[[&quot;500000&quot;]]   0.052           10
 ## 3    xL[[5e+05]]   0.000           10
 </code></pre>
 

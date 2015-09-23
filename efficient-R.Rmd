@@ -138,25 +138,40 @@ Here's the result for the *makeTS* function from the demo code
 file:
 
 ```
-$by.self   self.time self.pct total.time total.pct 
-".Call"         0.38    48.72       0.38     48.72 
-".Fortran"      0.22    28.21       0.22     28.21 
-"matrix"        0.08    10.26       0.30     38.46 
-"exp"           0.08    10.26       0.08     10.26 
-"/"             0.02     2.56       0.02      2.56
-$by.total         total.time total.pct self.time self.pct 
-"makeTS"                0.78    100.00      0.00     0.00 
-".Call"                 0.38     48.72      0.38    48.72 
-"chol.default"          0.38     48.72      0.00     0.00 
-"chol"                  0.38     48.72      0.00     0.00 
-"standardGeneric"       0.38     48.72      0.00     0.00 
-"matrix"                0.30     38.46      0.08    10.26 
-"rdist"                 0.30     38.46      0.00     0.00 
-".Fortran"              0.22     28.21      0.22    28.21 
-"exp"                   0.08     10.26      0.08    10.26 
-"/"                     0.02      2.56      0.02     2.56
-$sample.interval [1] 0.02
-$sampling.time [1] 0.78
+$by.self
+                           self.time self.pct total.time total.pct
+".Fortran"                     0.156    39.49      0.156     39.49
+"chol.default"                 0.111    28.10      0.111     28.10
+"exp"                          0.052    13.16      0.052     13.16
+"matrix"                       0.027     6.84      0.027      6.84
+"rdist"                        0.017     4.30      0.200     50.63
+"/"                            0.014     3.54      0.014      3.54
+"-"                            0.013     3.29      0.013      3.29
+"<Anonymous>"                  0.004     1.01      0.005      1.27
+".inheritedArgsExpression"     0.001     0.25      0.001      0.25
+
+$by.total
+                           total.time total.pct self.time self.pct
+"makeTS"                        0.395    100.00     0.000     0.00
+"rdist"                         0.200     50.63     0.017     4.30
+".Fortran"                      0.156     39.49     0.156    39.49
+"standardGeneric"               0.116     29.37     0.000     0.00
+"chol"                          0.112     28.35     0.000     0.00
+"chol.default"                  0.111     28.10     0.111    28.10
+"exp"                           0.052     13.16     0.052    13.16
+"matrix"                        0.027      6.84     0.027     6.84
+"/"                             0.014      3.54     0.014     3.54
+"-"                             0.013      3.29     0.013     3.29
+"<Anonymous>"                   0.005      1.27     0.004     1.01
+"crossprod"                     0.004      1.01     0.000     0.00
+".inheritedArgsExpression"      0.001      0.25     0.001     0.25
+".findInheritedMethods"         0.001      0.25     0.000     0.00
+
+$sample.interval
+[1] 0.001
+
+$sampling.time
+[1] 0.395
 ```
 
 *Rprof* tells how much time was spent in each function alone
