@@ -15,7 +15,7 @@ This tutorial covers strategies for writing efficient R code by taking advantage
 
 In the future, a screencast of the material may accompany this document.
 
-You should be able to work through this tutorial in any working R installation, including through RStudio. To work through it using R linked to a fast linear algebra package, you may want to use a virtual machine developed here at Berkeley, the [Berkeley Common Environment (BCE)](http://bce.berkeley.edu). BCE is a virtual Linux machine - basically it is a Linux computer that you can run within your own computer, regardless of whether you are using Windows, Mac, or Linux. This provides a common environment so that things behave the same for all of us. 
+You should be able to work through this tutorial in any working R installation, including through RStudio. To work through it using R linked to a fast linear algebra package, you may want to use a virtual machine developed here at Berkeley, the [Berkeley Common Environment (BCE)](http://bce.berkeley.edu). BCE is a virtual Linux machine - basically it is a Linux computer that you can run within your own computer, regardless of whether you are using Windows, Mac, or Linux. This provides a common environment so that things behave the same for all of us. However, note that BCE has not been updated in a while. 
 
 This tutorial assumes you have a working knowledge of R. 
 
@@ -85,7 +85,7 @@ implementations. Here's a basic comparison of the time to calculate the row mean
 ```{r, system-time}
 ```
 
-
+In general, *user* time gives the CPU time spent by R and *system* time gives the CPU time spent by the kernel (the operating system) on behalf of R. Operations that fall under system time include opening files, doing input or output, starting other processes, etc.
 
 To time code that runs very quickly, you may want to use the *microbenchmark*
 package. Of course one would generally only care about such timing if a larger operation does the quick calculation very many times. Here's a comparison of different ways of accessing an element of a dataframe.
@@ -102,13 +102,17 @@ that automates timings and comparisons.
 
 In general, it's a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.
 
+You might also checkout the *tictoc* package.
+
 ## 3.2) Profiling
 
 
 
 The *Rprof* function will show you how much time is spent in
 different functions, which can help you pinpoint bottlenecks in your
-code. 
+code.  The output from *Rprof* can be hard to decipher, so you
+may want to use the *proftools* package functions, which make use of
+*Rprof* under the hood. 
 
 Here's a function that works with a correlation matrix such as one
 might have for time series data. Basically, it creates a matrix of time lags (*dd*) and
@@ -118,94 +122,41 @@ matrix so that it can generate a random time series in the last line. The questi
 one might ask is which part(s) of the code take the most time.
 
 ```{r, Rprof, eval=FALSE}
-makeTS <- function(param, len){
-	times <- seq(0, 1, length = len)
-	dd <- rdist(times)
-	C <- exp(-dd/param)
-	U <- chol(C)
-	white <- rnorm(len)
-	return(crossprod(U, white))
-}
-
-library(fields)
-Rprof("makeTS.prof")
-out <- makeTS(0.1, 1000)
-Rprof(NULL)
-summaryRprof("makeTS.prof")
 ```
 
-Here's the result for the *makeTS* function from the demo code
-file:
-
+Here's the result for the *makeTS* function:
 ```
-$by.self
-                           self.time self.pct total.time total.pct
-".Fortran"                     0.156    39.49      0.156     39.49
-"chol.default"                 0.111    28.10      0.111     28.10
-"exp"                          0.052    13.16      0.052     13.16
-"matrix"                       0.027     6.84      0.027      6.84
-"rdist"                        0.017     4.30      0.200     50.63
-"/"                            0.014     3.54      0.014      3.54
-"-"                            0.013     3.29      0.013      3.29
-"<Anonymous>"                  0.004     1.01      0.005      1.27
-".inheritedArgsExpression"     0.001     0.25      0.001      0.25
-
-$by.total
-                           total.time total.pct self.time self.pct
-"makeTS"                        0.395    100.00     0.000     0.00
-"rdist"                         0.200     50.63     0.017     4.30
-".Fortran"                      0.156     39.49     0.156    39.49
-"standardGeneric"               0.116     29.37     0.000     0.00
-"chol"                          0.112     28.35     0.000     0.00
-"chol.default"                  0.111     28.10     0.111    28.10
-"exp"                           0.052     13.16     0.052    13.16
-"matrix"                        0.027      6.84     0.027     6.84
-"/"                             0.014      3.54     0.014     3.54
-"-"                             0.013      3.29     0.013     3.29
-"<Anonymous>"                   0.005      1.27     0.004     1.01
-"crossprod"                     0.004      1.01     0.000     0.00
-".inheritedArgsExpression"      0.001      0.25     0.001     0.25
-".findInheritedMethods"         0.001      0.25     0.000     0.00
-
-$sample.interval
-[1] 0.001
-
-$sampling.time
-[1] 0.395
+ path                      total.pct self.pct
+ makeTS                    100.00     0.00   
+ . ?? (#File 1: :4)         56.06    56.06   
+ . chol (#File 1: :5)       30.30     0.00   
+ . . standardGeneric        30.30     0.00   
+ . . . chol                 30.30     0.00   
+ . . . . chol.default       30.30    30.30   
+ . rdist (#File 1: :3)      12.12     0.00   
+ . . .Call                  12.12    12.12   
+ . crossprod (#File 1: :7)   1.52     0.00   
+ . . crossprod               1.52     0.00   
+ . . . base::crossprod       1.52     1.52   
 ```
 
-*Rprof* tells how much time was spent in each function alone
-(the *self* columns); this does not include time spent in
-function calls made within the function. It also shows the aggregate time spent in
-a function and all of the functions that it calls (the *total*
-columns). Usually the former is going to be more useful, but in some
-cases we need to decipher what is going on based on the latter.
-The two different tables (*$by.self* and *$by.total*) show essentially the same information but 
-sorted either based on the self percentages or the total percentages.
 
-The *time* columns show clock time in seconds, while the *pct* columns
-show the percentage of the time spent. 
+Note the nestedness of the results. For example, 12 percent of the time was spent in the call to *rdist*, of which essentially all of that was spent in *.Call*, which is a call out to C code.
 
-Let's figure out what is going on here. In the first table, the self time tells us that
-*.Call* (a call to C code) and *.Fortran* (a call to Fortran
-code) take up most of the time, followed by *matrix* and *exp*. Looking at the
-total time and seeing in *chol.default* that *.Call* is
-used (you would have to go in and look at the *La_chol* function
-to verify that *.Internal* uses *.Call*) and in *rdist* that *.Fortran* and
-*matrix* are used we can infer that about 49% of the time
-is being spent in the Cholesky and 38% in the *rdist* calculation,
-with 10% in *exp*. As we increase the number of time points,
+In this case, the results are not fully helpful, as 56 percent of the time is spent in other computations within *makeTS* that are not shown individually (see the "??" line). 
+
+As we increase the number of time points,
 the time taken up by the Cholesky would increase since that calculation
-is order of $n^{3}$ while the others are order $n^{2}$.
+is order of $n^{3}$ while the others are order $n^{2}$ (more in the Linear Algebra unit).
 
 In this case, since the Cholesky and the main calculations in *rdist*, as well as *exp*,
 are all done in compiled C or Fortran code, there is probably not much we can do
 to speed this up (apart from using an optimized BLAS, which is essential). But in other cases profiling may reveal the slow steps in a piece of code. 
 
-Note that *Rprof* works by sampling - every little while during a calculation it finds out what function R is in and saves that information to the file given as the argument to *Rprof*. So if you try to profile code that finishes really quickly, there's not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.
+Note that *Rprof* works by sampling - every little while (the *interval* argument) during a calculation it finds out what function R is in and saves that information to the file given as the argument to *Rprof*. So if you try to profile code that finishes really quickly, there's not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.
 
-You might also check out some packages that help with profiling: *proftools*,
-*profr*, and *lineprof*.
+You might also check out *profvis* for an alternative to displaying profiling information
+generated by *Rprof*.
 
 *Warning*: *Rprof* conflicts with threaded linear algebra,
 so you may need to set OMP_NUM_THREADS to 1 to disable threaded
@@ -263,7 +214,19 @@ So what is different in how R handles the calculations above that
 explains the huge disparity in efficiency? The vectorized calculation is being done natively
 in C in a for loop. The explicit R for loop involves executing the for
 loop in R with repeated calls to C code at each iteration. This involves a lot
-of overhead because of the repeated processing of the R code inside the loop.
+of overhead because of the repeated processing of the R code inside the loop. For example,
+in each iteration of the loop, R is checking the types of the variables because it's possible
+that the types might change, such as in this loop:
+
+```
+x <- 3
+for( i in 1:n ) {
+     if(i == 7) {
+          x <- 'foo'
+     }
+     y <- x^2
+}
+```
 
 You can
 usually get a sense for how quickly an R call will pass things along
@@ -308,7 +271,7 @@ loop over the smallest dimension and use the vectorized calculation
 on the larger dimension(s). For example if you have a 10000 by 10 matrix, try to set
 up your problem so you can loop over the 10 columns rather than the 10000 rows.
  - In general, looping over columns is likely to be faster than looping over rows
-given R's column-major ordering (matrices are stored in memory as a long array in which values in a column are adjacent to each other).
+given R's column-major ordering (matrices are stored in memory as a long array in which values in a column are adjacent to each other) (see more in Section 4.6 on the cache).
  - You can use direct arithmetic operations to add/subtract/multiply/divide
 a vector by each column of a matrix, e.g. `A*b` does element-wise multiplication of
 each column of *A* by a vector *b*. If you need to operate
@@ -458,4 +421,20 @@ In contrast, we can look up by name in an environment very quickly, because envi
 
 The first benchmark indicates that lookup in an environment is nearly as fast as lookup by index in a vector or list, though the microbenchmark suggests that lookup in the environment is somewhat slower. 
 
+
+
+## Cache-aware programming
+
+In addition to main memory (what we usually mean when we talk about RAM), computers also have memory caches, which are small amounts of fast memory that can be accessed very quickly by the processor. For example your computer might have L1, L2, and L3 caches, with L1 the smallest and fastest and L3 the largest and slowest. The idea is to try to have the data that is most used by the processor in the cache. 
+
+If the next piece of data needed for computation is available in the cache, this is a *cache hit* and the data can be accessed very quickly. However, if the data is not available in the cache, this is a *cache miss* and the speed of access will be a lot slower. *Cache-aware programming* involves writing your code to minimize cache misses. Generally when data is read from memory it will be read in chunks, so values that are contiguous will be read together.
+
+How does this inform one's programming? For example, if you have a matrix of values stored in column-major order, computing on a column will be a lot faster than computing on a row, because the column can be read into the cache from main memory and then accessed in the cache. In contrast, if the matrix is large and therefore won't fit in the cache, when you access the values of a row, you'll have to go to main memory repeatedly to get the values for the row because the values are not stored contiguously.
+
+There's a nice example of the importance of the cache at [the bottom of this blog post](https://wrathematics.github.io/2016/10/28/comparing-symmetric-eigenvalue-performance/).
+
+If you know the size of the cache, you can try to design your code so that in a given part of your code you access data structures that will fit in the cache. This sort of thing is generally more relevant if you're coding in a language like C. But it can matter sometimes in R too. Here's an example:
+
+```{r, cache-aware}
+```
 

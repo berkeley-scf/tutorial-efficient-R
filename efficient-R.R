@@ -42,11 +42,20 @@ makeTS <- function(param, len){
 	return(crossprod(U, white))
 }
 
+## old approach:
 library(fields)
-Rprof("makeTS.prof", interval = 0.001)
-out <- makeTS(0.1, 3000)
-Rprof(NULL)
-summaryRprof("makeTS.prof")
+if(FALSE) { # not running this, just for illustration
+    Rprof("makeTS.prof", interval = 0.005, line.profiling = TRUE)
+    out <- makeTS(0.1, 3000)
+    Rprof(NULL)
+    summaryRprof("makeTS.prof")
+}
+
+## using proftools instead:
+library(proftools)
+pd <- profileExpr(makeTS(0.1, 3000))
+hotPaths(pd)
+
 
 ## @knitr preallocate
 n <- 10000
@@ -224,5 +233,14 @@ microbenchmark(
   xEnv$"500000")
 
 
+## @knitr cache-aware
+
+nr = 800000
+nc = 100
+## large matrix that won't fit in cache
+A = matrix(rnorm(nr * nc), nrow = nr)
+system.time(apply(A, 2, mean))  ## operate by column
+A = t(A)
+system.time(apply(A, 1, mean))  ## same calculation, but by row
 
 
