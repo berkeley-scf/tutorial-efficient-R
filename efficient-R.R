@@ -243,4 +243,13 @@ system.time(apply(A, 2, mean))  ## operate by column
 A = t(A)
 system.time(apply(A, 1, mean))  ## same calculation, but by row
 
+nr = 800
+nc = 100
+## small matrix that should fit in cache
+A = matrix(rnorm(nr * nc), nrow = nr)
+tA = t(A)
+benchmark(apply(A, 2, mean),  ## by column
+          apply(tA, 1, mean),  ## by row
+  replications = 10, columns=c('test', 'elapsed', 'replications'))
+
 
