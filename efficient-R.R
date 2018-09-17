@@ -58,24 +58,27 @@ hotPaths(pd)
 
 
 ## @knitr preallocate
+
 n <- 10000
-fun1 <- function(n) {
-   x <- 1
-   for(i in 2:n) x <- c(x, i)
+z <- rnorm(n)
+
+fun1 <- function(vals) {
+   x <- exp(vals[1])
+   for(i in 2:n) x <- c(x, exp(vals[i]))
    return(x)
 }
-fun2 <- function(n) {
+fun2 <- function(vals) {
+   n <- length(vals)
    x <- rep(as.numeric(NA), n)
-   for(i in 1:n) x[i] <- i
+   for(i in 1:n) x[i] <- exp(vals[i])
    return(x)
 }
-fun3 <- function(n) {
-  x <- 1:n
+fun3 <- function(vals) {
+  x <- exp(vals)
   return(x)
 }
-benchmark(fun1(n), fun2(n), fun3(n),
-replications = 10, columns=c('test', 'elapsed', 'replications'))
-
+benchmark(fun1(z), fun2(z), fun3(z),
+replications = 20, columns=c('test', 'elapsed', 'replications'))
 
 ## @knitr init-matrix
 nr <- nc <- 2000
@@ -151,6 +154,25 @@ system.time({
                     out2[i] = lm(mat[ , i] ~ times)$coef[2]
                 }
             }) 
+
+
+## @knitr apply-vs-for-part2
+
+z <- rnorm(10000)
+fun2 <- function(vals) {
+    x <- as.numeric(NA)
+    length(x) <- length(vals)
+    for(i in 1:n) x[i] <- exp(vals[i])
+    return(x)
+}
+fun4 <- function(vals) {
+    x <- sapply(vals, exp)
+    return(x)
+}
+    
+benchmark(fun2(z), fun4(z),
+replications = 10, columns=c('test', 'elapsed', 'replications'))
+
 
 ## @knitr matrix-calc
 mat <- matrix(rnorm(500*500), 500)

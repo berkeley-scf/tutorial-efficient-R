@@ -13,7 +13,7 @@ read_chunk('efficient-R.R')
 
 This tutorial covers strategies for writing efficient R code by taking advantage of the underlying structure of how R works. In addition it covers tools and strategies  for timing and profiling R code.
 
-In the future, a screencast of the material may accompany this document.
+While some of the strategies covered here are specific to R, many are built on principles that can guide your coding in other languages.
 
 You should be able to work through this tutorial in any working R installation, including through RStudio. To work through it using R linked to a fast linear algebra package, you may want to use a virtual machine developed here at Berkeley, the [Berkeley Common Environment (BCE)](http://bce.berkeley.edu). BCE is a virtual Linux machine - basically it is a Linux computer that you can run within your own computer, regardless of whether you are using Windows, Mac, or Linux. This provides a common environment so that things behave the same for all of us. However, note that BCE has not been updated in a while. 
 
@@ -312,7 +312,7 @@ need to transpose twice.
 Using *apply* with matrices and versions of *apply* with lists may or may not be faster
 than looping but generally produces cleaner code. Whether looping
 is slower will depend on whether a substantial part of the work is
-in the overhead of the looping or in the time required by the function
+in the overhead involved in the looping or in the time required by the function
 evaluation on each of the elements. If you're worried about speed,
 it's a good idea to benchmark the *apply* variant against looping.
 
@@ -323,6 +323,16 @@ than writing a loop.
 ```{r, apply-vs-for}
 ```
 
+And here's an example where *sapply* is much faster, because the core function evaluation at each iteration is very fast:
+
+```{r, apply-vs-for-part2}
+```
+
+You'll notice if you look at the R code for *lapply* (*sapply* just calls *lapply*) that it calls directly out to C code, so the for loop is executed in compiled code.
+
+```{r, lapply-callout}
+print(lapply)
+```
 
 ## 4.4) Matrix algebra efficiency
 
