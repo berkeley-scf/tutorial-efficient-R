@@ -337,9 +337,7 @@ print(lapply)
 ## 4.4) Matrix algebra efficiency
 
 Often calculations that are not explicitly linear algebra calculations
-can be done as matrix algebra. For example, we can sum the rows of a matrix by multiplying by a vector of ones. It's actually even faster with
-*rowSums*, so it's not a great example, but this sort of trick
-does come in handy in surprising places. 
+can be done as matrix algebra. For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it's surprising that this is faster than using R's heavily optimized *rowSums* function. It might be at least partially related to cache effects as *colSums* is more than twice as fast as *rowSums* in this case.
 
 ```{r, matrix-calc}
 ```
