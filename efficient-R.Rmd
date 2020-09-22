@@ -15,7 +15,7 @@ This tutorial covers strategies for writing efficient R code by taking advantage
 
 While some of the strategies covered here are specific to R, many are built on principles that can guide your coding in other languages.
 
-You should be able to work through this tutorial in any working R installation, including through RStudio. To work through it using R linked to a fast linear algebra package, you may want to use a virtual machine developed here at Berkeley, the [Berkeley Common Environment (BCE)](http://bce.berkeley.edu). BCE is a virtual Linux machine - basically it is a Linux computer that you can run within your own computer, regardless of whether you are using Windows, Mac, or Linux. This provides a common environment so that things behave the same for all of us. However, note that BCE has not been updated in a while. 
+You should be able to work through this tutorial in any working R installation, including through RStudio. However, in many cases the R you are using may not be linked to a fast linear algebra package. 
 
 This tutorial assumes you have a working knowledge of R. 
 
@@ -24,7 +24,7 @@ Materials for this tutorial, including the R markdown file and associated code f
 git clone https://github.com/berkeley-scf/tutorial-efficient-R
 ```
 
-To create this HTML document, simply compile the corresponding R Markdown file in R as follows (the following will work from within BCE after cloning the repository as above).
+To create this HTML document, simply compile the corresponding R Markdown file in R as follows.
 ```{r, build-html, eval=FALSE}
 Rscript -e "library(knitr); knit2html('efficient-R.Rmd')"
 ```
