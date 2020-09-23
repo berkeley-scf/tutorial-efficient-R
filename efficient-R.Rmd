@@ -87,15 +87,18 @@ implementations. Here's a basic comparison of the time to calculate the row mean
 
 In general, *user* time gives the CPU time spent by R and *system* time gives the CPU time spent by the kernel (the operating system) on behalf of R. Operations that fall under system time include opening files, doing input or output, starting other processes, etc.
 
-To time code that runs very quickly, you may want to use the *microbenchmark*
-package. Of course one would generally only care about such timing if a larger operation does the quick calculation very many times. Here's a comparison of different ways of accessing an element of a dataframe.
+To time code that runs very quickly, you should use the *microbenchmark*
+package. Of course one would generally only care about accurately timing quick calculations if a larger operation does the quick calculation very many times. Here's a comparison of different ways of accessing an element of a dataframe.
 
 ```{r, microbenchmark}
 ```
 
+*microbenchmark* is also a good way to compare slower calculations, e.g., doing a crossproduct via *crossproduct()* compared to "manually":
 
-The *rbenchmark* package provides a nice wrapper function, *benchmark*,
-that automates timings and comparisons. 
+```{r, microbenchmark2}
+```
+
+An alternative that also automates timings and comparisons is the *benchmark* function from  the *rbenchmark* package, but there's not really a reason to use it when *microbenchmark* is available.
 
 ```{r, benchmark}
 ```
@@ -106,57 +109,45 @@ You might also checkout the *tictoc* package.
 
 ## 3.2) Profiling
 
-
-
 The *Rprof* function will show you how much time is spent in
 different functions, which can help you pinpoint bottlenecks in your
 code.  The output from *Rprof* can be hard to decipher, so you
-may want to use the *proftools* package functions, which make use of
-*Rprof* under the hood. 
+will probably want to use the *proftools* package functions, which make use of
+*Rprof* under the hood.
 
-Here's a function that works with a correlation matrix such as one
-might have for time series data. Basically, it creates a matrix of time lags (*dd*) and
-computes the correlation between the outcome for all pairs of times, based on the time
-lag between the pair of times. Then it computes the Cholesky factor of the correlation 
-matrix so that it can generate a random time series in the last line. The question
-one might ask is which part(s) of the code take the most time.
+Here's a function that does the linear algebra to find the least squares solution in a linear regression, assuming `x`
+is the matrix of predictors, including a column for the intercept.
 
-```{r, Rprof, eval=FALSE}
+
+```{r, Rprof-fun}
 ```
 
-Here's the result for the *makeTS* function:
-```
- path                      total.pct self.pct
- makeTS                    100.00     0.00   
- . ?? (#File 1: :4)         56.06    56.06   
- . chol (#File 1: :5)       30.30     0.00   
- . . standardGeneric        30.30     0.00   
- . . . chol                 30.30     0.00   
- . . . . chol.default       30.30    30.30   
- . rdist (#File 1: :3)      12.12     0.00   
- . . .Call                  12.12    12.12   
- . crossprod (#File 1: :7)   1.52     0.00   
- . . crossprod               1.52     0.00   
- . . . base::crossprod       1.52     1.52   
+Let's run the function with profiling turned on.
+
+```{r, Rprof-run1}
 ```
 
+The first call to *hotPaths* shows the percentage of time spent in each call, while the second shows the actual time.
 
-Note the nestedness of the results. For example, 12 percent of the time was spent in the call to *rdist*, of which essentially all of that was spent in *.Call*, which is a call out to C code.
+Note the nestedness of the results. For example, essentially all the time spent in *solve* is actually spent in *solve.default*. In this case *solve* is just a generic method that immediately calls *solve.default*.
 
-In this case, the results are not fully helpful, as 56 percent of the time is spent in other computations within *makeTS* that are not shown individually (see the "??" line). 
+We can see that a lot of time is spent in doing the two crossproducts. So let's try using *crossprod* to make those steps faster.
 
-As we increase the number of time points,
-the time taken up by the Cholesky would increase since that calculation
-is order of $n^{3}$ while the others are order $n^{2}$ (more in the Linear Algebra unit).
 
-In this case, since the Cholesky and the main calculations in *rdist*, as well as *exp*,
-are all done in compiled C or Fortran code, there is probably not much we can do
-to speed this up (apart from using an optimized BLAS, which is essential). But in other cases profiling may reveal the slow steps in a piece of code. 
+```{r, Rprof-run2}
+```
 
-Note that *Rprof* works by sampling - every little while (the *interval* argument) during a calculation it finds out what function R is in and saves that information to the file given as the argument to *Rprof*. So if you try to profile code that finishes really quickly, there's not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.
+First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using *solve*. (There's not much we can do to speed up the *crossprod* operations.) It's well known that one should avoid computing the explicit inverse if one can avoid it. Here's a faster version that avoids it.
+
+```{r, Rprof-run3}
+```
+
+We can see we get another speedup from that final version of the code. (But beware my earlier caution that if comparing times between implementations, we should have replication.)
 
 You might also check out *profvis* for an alternative to displaying profiling information
 generated by *Rprof*.
+
+Note that *Rprof* works by sampling - every little while (the *interval* argument) during a calculation it finds out what function R is in and saves that information to the file given as the argument to *Rprof*. So if you try to profile code that finishes really quickly, there's not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.
 
 *Warning*: *Rprof* conflicts with threaded linear algebra,
 so you may need to set OMP_NUM_THREADS to 1 to disable threaded
@@ -410,7 +401,7 @@ names of matrices/arrays, row and column names of dataframes, and
 named lists.
 
 However, looking things up by name can be slow relative to looking up by index.
-Here's a toy example where we have a vector or list with a million elements and
+Here's a toy example where we have a vector or list with 1000 elements and
 the character names of the elements are just the character versions of the 
 indices of the elements.  
 
@@ -421,14 +412,12 @@ Lookup by name is slow because R needs to scan through the objects
 one by one until it finds the one with the name it is looking for.
 In contrast, to look up by index, R can just go directly to the position of interest.
 
+Side note: there is a lot of variability across the 100 replications shown above. This might have to do with cache effects (see next section).
 
 In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code. 
 
 ```{r, env-lookup, cache=TRUE}
 ```
-
-The first benchmark indicates that lookup in an environment is nearly as fast as lookup by index in a vector or list, though the microbenchmark suggests that lookup in the environment is somewhat slower. 
-
 
 
 ## Cache-aware programming

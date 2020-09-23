@@ -214,7 +214,7 @@ hr {
 
 <p>While some of the strategies covered here are specific to R, many are built on principles that can guide your coding in other languages.</p>
 
-<p>You should be able to work through this tutorial in any working R installation, including through RStudio. However, in many cases the R you are using may not be linked to a fast linear algebra package.</p>
+<p>You should be able to work through this tutorial in any working R installation, including through RStudio. However, in many cases the R you are using may not be linked to a fast linear algebra package. </p>
 
 <p>This tutorial assumes you have a working knowledge of R. </p>
 
@@ -291,20 +291,20 @@ system.time({
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.232   0.016   0.246
+##   0.231   0.020   0.251
 </code></pre>
 
 <pre><code class="r">system.time(rowMeans(x))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.024   0.000   0.024
+##   0.025   0.000   0.024
 </code></pre>
 
 <p>In general, <em>user</em> time gives the CPU time spent by R and <em>system</em> time gives the CPU time spent by the kernel (the operating system) on behalf of R. Operations that fall under system time include opening files, doing input or output, starting other processes, etc.</p>
 
-<p>To time code that runs very quickly, you may want to use the <em>microbenchmark</em>
-package. Of course one would generally only care about such timing if a larger operation does the quick calculation very many times. Here&#39;s a comparison of different ways of accessing an element of a dataframe.</p>
+<p>To time code that runs very quickly, you should use the <em>microbenchmark</em>
+package. Of course one would generally only care about accurately timing quick calculations if a larger operation does the quick calculation very many times. Here&#39;s a comparison of different ways of accessing an element of a dataframe.</p>
 
 <pre><code class="r">library(microbenchmark)
 df &lt;- data.frame(vals = 1:3, labs = c(&#39;a&#39;,&#39;b&#39;,&#39;c&#39;))
@@ -316,41 +316,45 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: microseconds
-##           expr    min      lq     mean  median     uq    max neval cld
-##       df[2, 1] 12.532 13.2260 13.79943 13.6360 13.946 18.980   100   b
-##     df$vals[2]  6.731  7.9160  8.71348  8.3565  8.641 52.525   100  a 
-##  df[2, &quot;vals&quot;] 12.670 13.5355 14.36814 13.7850 14.136 44.447   100   b
+##           expr    min      lq     mean  median      uq    max neval cld
+##       df[2, 1] 13.570 14.0245 14.55557 14.1945 14.4675 29.628   100   b
+##     df$vals[2]  1.033  1.4335  1.85085  1.9300  2.0540  7.692   100  a 
+##  df[2, &quot;vals&quot;] 13.529 13.8460 14.96311 14.1025 14.3445 79.596   100   b
 </code></pre>
 
-<p>The <em>rbenchmark</em> package provides a nice wrapper function, <em>benchmark</em>,
-that automates timings and comparisons. </p>
+<p><em>microbenchmark</em> is also a good way to compare slower calculations, e.g., doing a crossproduct via <em>crossproduct()</em> compared to &ldquo;manually&rdquo;:</p>
+
+<pre><code class="r">library(microbenchmark)
+n &lt;- 1000
+x &lt;- matrix(rnorm(n^2), n)
+microbenchmark(
+    t(x) %*% x,
+    crossprod(x),
+    times = 10)
+</code></pre>
+
+<pre><code>## Unit: milliseconds
+##          expr     min       lq     mean   median       uq      max neval
+##    t(x) %*% x 38.5048 44.10347 52.56555 46.44601 57.27781 74.89820    10
+##  crossprod(x) 19.0293 19.07104 23.59746 20.53333 28.25155 32.17322    10
+##  cld
+##    b
+##   a
+</code></pre>
+
+<p>An alternative that also automates timings and comparisons is the <em>benchmark</em> function from  the <em>rbenchmark</em> package, but there&#39;s not really a reason to use it when <em>microbenchmark</em> is available.</p>
 
 <pre><code class="r">library(rbenchmark)
 # speed of one calculation
-n &lt;- 1000
-x &lt;- matrix(rnorm(n^2), n)
-benchmark(crossprod(x), replications = 10,
+benchmark(t(x) %*% x,
+          crossprod(x),
+          replications = 10,
           columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
 <pre><code>##           test elapsed replications
-## 1 crossprod(x)   0.481           10
-</code></pre>
-
-<pre><code class="r"># comparing different approaches to a task
-benchmark(
-  {mns &lt;- rep(NA, n); for(i in 1:n) mns[i] &lt;- mean(x[i , ])},
-  rowMeans(x), 
-  replications = 10,
-  columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
-</code></pre>
-
-<pre><code>##                                                                     test
-## 1 {\n    mns &lt;- rep(NA, n)\n    for (i in 1:n) mns[i] &lt;- mean(x[i, ])\n}
-## 2                                                            rowMeans(x)
-##   elapsed replications
-## 1   0.196           10
-## 2   0.024           10
+## 2 crossprod(x)   0.238           10
+## 1   t(x) %*% x   0.564           10
 </code></pre>
 
 <p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
@@ -362,72 +366,142 @@ benchmark(
 <p>The <em>Rprof</em> function will show you how much time is spent in
 different functions, which can help you pinpoint bottlenecks in your
 code.  The output from <em>Rprof</em> can be hard to decipher, so you
-may want to use the <em>proftools</em> package functions, which make use of
-<em>Rprof</em> under the hood. </p>
+will probably want to use the <em>proftools</em> package functions, which make use of
+<em>Rprof</em> under the hood.</p>
 
-<p>Here&#39;s a function that works with a correlation matrix such as one
-might have for time series data. Basically, it creates a matrix of time lags (<em>dd</em>) and
-computes the correlation between the outcome for all pairs of times, based on the time
-lag between the pair of times. Then it computes the Cholesky factor of the correlation 
-matrix so that it can generate a random time series in the last line. The question
-one might ask is which part(s) of the code take the most time.</p>
+<p>Here&#39;s a function that does the linear algebra to find the least squares solution in a linear regression, assuming <code>x</code>
+is the matrix of predictors, including a column for the intercept.</p>
 
-<pre><code class="r">makeTS &lt;- function(param, len){
-    times &lt;- seq(0, 1, length = len)
-    dd &lt;- rdist(times)
-    C &lt;- exp(-dd/param)
-    U &lt;- chol(C)
-    white &lt;- rnorm(len)
-    return(crossprod(U, white))
+<pre><code class="r">lr_slow &lt;- function(y, x) {
+  xtx &lt;- t(x) %*% x
+  xty &lt;- t(x) %*% y
+  inv &lt;- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  return(inv %*% xty)
 }
+</code></pre>
 
-## old approach:
-library(fields)
-if(FALSE) { # not running this, just for illustration
-    Rprof(&quot;makeTS.prof&quot;, interval = 0.005, line.profiling = TRUE)
-    out &lt;- makeTS(0.1, 3000)
-    Rprof(NULL)
-    summaryRprof(&quot;makeTS.prof&quot;)
-}
+<p>Let&#39;s run the function with profiling turned on.</p>
 
-## using proftools instead:
+<pre><code class="r">## generate random observations and random matrix of predictors
+y &lt;- rnorm(5000)
+x &lt;- matrix(rnorm(5000*1000), nrow = 5000)
+
 library(proftools)
-pd &lt;- profileExpr(makeTS(0.1, 3000))
-hotPaths(pd)
+
+pd1 &lt;- profileExpr(lr_slow(y, x))
+hotPaths(pd1)
 </code></pre>
 
-<p>Here&#39;s the result for the <em>makeTS</em> function:</p>
-
-<pre><code> path                      total.pct self.pct
- makeTS                    100.00     0.00   
- . ?? (#File 1: :4)         56.06    56.06   
- . chol (#File 1: :5)       30.30     0.00   
- . . standardGeneric        30.30     0.00   
- . . . chol                 30.30     0.00   
- . . . . chol.default       30.30    30.30   
- . rdist (#File 1: :3)      12.12     0.00   
- . . .Call                  12.12    12.12   
- . crossprod (#File 1: :7)   1.52     0.00   
- . . crossprod               1.52     0.00   
- . . . base::crossprod       1.52     1.52   
+<pre><code>##  path               total.pct self.pct
+##  lr_slow            100.00     0.00   
+##  . %*% (&lt;text&gt;:2)    44.32    44.32   
+##  . t (&lt;text&gt;:3)      29.55     0.00   
+##  . . t.default       29.55    29.55   
+##  . solve (&lt;text&gt;:4)  22.73     0.00   
+##  . . solve.default   22.73    21.59   
+##  . . . diag           1.14     1.14   
+##  . t (&lt;text&gt;:2)       2.27     0.00   
+##  . . t.default        2.27     2.27   
+##  . %*% (&lt;text&gt;:3)     1.14     1.14
 </code></pre>
 
-<p>Note the nestedness of the results. For example, 12 percent of the time was spent in the call to <em>rdist</em>, of which essentially all of that was spent in <em>.Call</em>, which is a call out to C code.</p>
+<pre><code class="r">hotPaths(pd1, value = &#39;time&#39;)
+</code></pre>
 
-<p>In this case, the results are not fully helpful, as 56 percent of the time is spent in other computations within <em>makeTS</em> that are not shown individually (see the &ldquo;??&rdquo; line). </p>
+<pre><code>##  path               total.time self.time
+##  lr_slow            1.76       0.00     
+##  . %*% (&lt;text&gt;:2)   0.78       0.78     
+##  . t (&lt;text&gt;:3)     0.52       0.00     
+##  . . t.default      0.52       0.52     
+##  . solve (&lt;text&gt;:4) 0.40       0.00     
+##  . . solve.default  0.40       0.38     
+##  . . . diag         0.02       0.02     
+##  . t (&lt;text&gt;:2)     0.04       0.00     
+##  . . t.default      0.04       0.04     
+##  . %*% (&lt;text&gt;:3)   0.02       0.02
+</code></pre>
 
-<p>As we increase the number of time points,
-the time taken up by the Cholesky would increase since that calculation
-is order of \(n^{3}\) while the others are order \(n^{2}\) (more in the Linear Algebra unit).</p>
+<p>The first call to <em>hotPaths</em> shows the percentage of time spent in each call, while the second shows the actual time.</p>
 
-<p>In this case, since the Cholesky and the main calculations in <em>rdist</em>, as well as <em>exp</em>,
-are all done in compiled C or Fortran code, there is probably not much we can do
-to speed this up (apart from using an optimized BLAS, which is essential). But in other cases profiling may reveal the slow steps in a piece of code. </p>
+<p>Note the nestedness of the results. For example, essentially all the time spent in <em>solve</em> is actually spent in <em>solve.default</em>. In this case <em>solve</em> is just a generic method that immediately calls <em>solve.default</em>.</p>
 
-<p>Note that <em>Rprof</em> works by sampling - every little while (the <em>interval</em> argument) during a calculation it finds out what function R is in and saves that information to the file given as the argument to <em>Rprof</em>. So if you try to profile code that finishes really quickly, there&#39;s not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.</p>
+<p>We can see that a lot of time is spent in doing the two crossproducts. So let&#39;s try using <em>crossprod</em> to make those steps faster.</p>
+
+<pre><code class="r">lr_medium &lt;- function(y, x) {
+  xtx &lt;- crossprod(x)
+  xty &lt;- crossprod(x, y)
+  inv &lt;- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  return(inv %*% xty)
+}                   
+
+pd2 &lt;- profileExpr(lr_medium(y, x))
+hotPaths(pd2)
+</code></pre>
+
+<pre><code>##  path                   total.pct self.pct
+##  lr_medium              100.00     0.00   
+##  . crossprod (&lt;text&gt;:2)  50.94    50.94   
+##  . solve (&lt;text&gt;:4)      35.85     0.00   
+##  . . solve.default       35.85    33.96   
+##  . . . diag               1.89     1.89   
+##  . %*% (&lt;text&gt;:5)         9.43     9.43   
+##  . crossprod (&lt;text&gt;:3)   3.77     3.77
+</code></pre>
+
+<pre><code class="r">hotPaths(pd2, value = &#39;time&#39;)
+</code></pre>
+
+<pre><code>##  path                   total.time self.time
+##  lr_medium              1.06       0.00     
+##  . crossprod (&lt;text&gt;:2) 0.54       0.54     
+##  . solve (&lt;text&gt;:4)     0.38       0.00     
+##  . . solve.default      0.38       0.36     
+##  . . . diag             0.02       0.02     
+##  . %*% (&lt;text&gt;:5)       0.10       0.10     
+##  . crossprod (&lt;text&gt;:3) 0.04       0.04
+</code></pre>
+
+<p>First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using <em>solve</em>. (There&#39;s not much we can do to speed up the <em>crossprod</em> operations.) It&#39;s well known that one should avoid computing the explicit inverse if one can avoid it. Here&#39;s a faster version that avoids it.</p>
+
+<pre><code class="r">lr_fast &lt;- function(y, x) {
+  xtx &lt;- crossprod(x)
+  xty &lt;- crossprod(x, y)
+  U &lt;- chol(xtx)
+  tmp &lt;- backsolve(U, xty, transpose = TRUE)
+  return(backsolve(U, tmp))
+}
+
+pd3 &lt;- profileExpr(lr_fast(y, x))
+hotPaths(pd3)
+</code></pre>
+
+<pre><code>##  path                   total.pct self.pct
+##  lr_fast                100.00     0.00   
+##  . crossprod (&lt;text&gt;:2)  78.79    78.79   
+##  . chol (&lt;text&gt;:4)       12.12     0.00   
+##  . . chol.default        12.12    12.12   
+##  . crossprod (&lt;text&gt;:3)   6.06     6.06   
+##  . backsolve (&lt;text&gt;:6)   3.03     3.03
+</code></pre>
+
+<pre><code class="r">hotPaths(pd3, value = &#39;time&#39;)
+</code></pre>
+
+<pre><code>##  path                   total.time self.time
+##  lr_fast                0.66       0.00     
+##  . crossprod (&lt;text&gt;:2) 0.52       0.52     
+##  . chol (&lt;text&gt;:4)      0.08       0.00     
+##  . . chol.default       0.08       0.08     
+##  . crossprod (&lt;text&gt;:3) 0.04       0.04     
+##  . backsolve (&lt;text&gt;:6) 0.02       0.02
+</code></pre>
+
+<p>We can see we get another speedup from that final version of the code. (But beware my earlier caution that if comparing times between implementations, we should have replication.)</p>
 
 <p>You might also check out <em>profvis</em> for an alternative to displaying profiling information
 generated by <em>Rprof</em>.</p>
+
+<p>Note that <em>Rprof</em> works by sampling - every little while (the <em>interval</em> argument) during a calculation it finds out what function R is in and saves that information to the file given as the argument to <em>Rprof</em>. So if you try to profile code that finishes really quickly, there&#39;s not enough opportunity for the sampling to represent the calculation accurately and you may get spurious results.</p>
 
 <p><em>Warning</em>: <em>Rprof</em> conflicts with threaded linear algebra,
 so you may need to set OMP_NUM_THREADS to 1 to disable threaded
@@ -471,8 +545,8 @@ replications = 20, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun1(z)   2.347           20
-## 2 fun2(z)   0.021           20
+## 1 fun1(z)   2.104           20
+## 2 fun2(z)   0.026           20
 ## 3 fun3(z)   0.006           20
 </code></pre>
 
@@ -497,8 +571,8 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ## 2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
 ## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
 ##   elapsed replications
-## 2   0.130           10
-## 1   0.275           10
+## 2   0.055           10
+## 1   0.158           10
 </code></pre>
 
 <p>For lists, we can do this</p>
@@ -586,7 +660,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##     }
 ##     .Internal(mean(x))
 ## }
-## &lt;bytecode: 0x2cb7598&gt;
+## &lt;bytecode: 0x55bf04f01630&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -599,7 +673,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##         stop(&quot;complex matrices not permitted at present&quot;)
 ##     .Internal(La_chol(as.matrix(x), pivot, tol))
 ## }
-## &lt;bytecode: 0x6a3f188&gt;
+## &lt;bytecode: 0x55bf051f0d18&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -697,8 +771,8 @@ benchmark(
 </code></pre>
 
 <pre><code>##                       test elapsed replications
-## 1 out &lt;- apply(x, 1, mean)   2.615           10
-## 2       out &lt;- rowMeans(x)   0.220           10
+## 1 out &lt;- apply(x, 1, mean)   1.880           10
+## 2       out &lt;- rowMeans(x)   0.212           10
 </code></pre>
 
 <p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
@@ -708,7 +782,7 @@ off a mean from each column, using <em>sweep</em></p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.124   0.040   0.162
+##   0.121   0.024   0.144
 </code></pre>
 
 <p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
@@ -720,7 +794,7 @@ need to transpose twice. </p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.276   0.048   0.324
+##   0.304   0.021   0.325
 </code></pre>
 
 <pre><code class="r">identical(out, out2)
@@ -753,7 +827,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.288   0.016   0.302
+##   0.085   0.000   0.084
 </code></pre>
 
 <pre><code class="r">system.time({
@@ -765,7 +839,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.300   0.016   0.312
+##   0.085   0.000   0.084
 </code></pre>
 
 <p>And here&#39;s an example where <em>sapply</em> is much faster, because the core function evaluation at each iteration is very fast:</p>
@@ -787,8 +861,8 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun2(z)   2.302           10
-## 2 fun4(z)   0.032           10
+## 1 fun2(z)   2.258           10
+## 2 fun4(z)   0.034           10
 </code></pre>
 
 <p>You&#39;ll notice if you look at the R code for <em>lapply</em> (<em>sapply</em> just calls <em>lapply</em>) that it calls directly out to C code, so the for loop is executed in compiled code.</p>
@@ -803,7 +877,7 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ##         X &lt;- as.list(X)
 ##     .Internal(lapply(X, FUN))
 ## }
-## &lt;bytecode: 0xa2fd48&gt;
+## &lt;bytecode: 0x55bf0309a0d0&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -820,8 +894,8 @@ benchmark(apply(mat, 1, sum),
 </code></pre>
 
 <pre><code>##                        test elapsed replications
-## 1        apply(mat, 1, sum)   0.038           10
-## 2 mat %*% rep(1, ncol(mat))   0.002           10
+## 1        apply(mat, 1, sum)   0.032           10
+## 2 mat %*% rep(1, ncol(mat))   0.003           10
 ## 3              rowSums(mat)   0.006           10
 </code></pre>
 
@@ -943,82 +1017,67 @@ names of matrices/arrays, row and column names of dataframes, and
 named lists.</p>
 
 <p>However, looking things up by name can be slow relative to looking up by index.
-Here&#39;s a toy example where we have a vector or list with a million elements and
+Here&#39;s a toy example where we have a vector or list with 1000 elements and
 the character names of the elements are just the character versions of the 
 indices of the elements.  </p>
 
-<pre><code class="r">n &lt;- 1000000
+<pre><code class="r">n &lt;- 1000
 x &lt;- 1:n
 xL &lt;- as.list(x)
 nms &lt;- as.character(x)
 names(x) &lt;- nms
 names(xL) &lt;- nms
-benchmark(
-    x[500000],  # index lookup in vector
-    x[&quot;500000&quot;], # name lookup in vector
-    xL[[500000]], # index lookup in list
-    xL[[&quot;500000&quot;]], # name lookup in list
-  replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
+microbenchmark(
+    x[500],  # index lookup in vector
+    x[&quot;500&quot;], # name lookup in vector
+    xL[[500]], # index lookup in list
+    xL[[&quot;500&quot;]]) # name lookup in list
 </code></pre>
 
-<pre><code>##             test elapsed replications
-## 2    x[&quot;500000&quot;]   0.062           10
-## 1       x[5e+05]   0.000           10
-## 4 xL[[&quot;500000&quot;]]   0.058           10
-## 3    xL[[5e+05]]   0.000           10
+<pre><code>## Unit: nanoseconds
+##         expr   min      lq     mean  median      uq    max neval cld
+##       x[500]   475   523.5   587.95   552.5   605.5   1278   100 a  
+##     x[&quot;500&quot;]  6202  6269.5  7407.16  6305.5  6395.0 105028   100  b 
+##    xL[[500]]   185   219.5   394.80   251.0   273.5   8283   100 a  
+##  xL[[&quot;500&quot;]] 12043 12108.5 12432.33 12149.5 12213.0  20153   100   c
 </code></pre>
 
 <p>Lookup by name is slow because R needs to scan through the objects
 one by one until it finds the one with the name it is looking for.
 In contrast, to look up by index, R can just go directly to the position of interest.</p>
 
+<p>Side note: there is a lot of variability across the 100 replications shown above. This might have to do with cache effects (see next section).</p>
+
 <p>In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code. </p>
 
 <pre><code class="r">xEnv &lt;- as.environment(xL)  # convert from a named list
-xEnv$&quot;500000&quot;  
+xEnv$&quot;500&quot;  
 </code></pre>
 
-<pre><code>## [1] 500000
+<pre><code>## [1] 500
 </code></pre>
 
 <pre><code class="r"># I need quotes above because numeric; otherwise xEnv$nameOfObject is fine
-xEnv[[&quot;500000&quot;]]
+xEnv[[&quot;500&quot;]]
 </code></pre>
 
-<pre><code>## [1] 500000
-</code></pre>
-
-<pre><code class="r">benchmark(
-  x[500000],
-  xL[[500000]],
-  xEnv[[&quot;500000&quot;]],
-  xEnv$&quot;500000&quot;,
-  replications = 10000, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
-</code></pre>
-
-<pre><code>##               test elapsed replications
-## 1         x[5e+05]   0.026        10000
-## 3 xEnv[[&quot;500000&quot;]]   0.030        10000
-## 4    xEnv$&quot;500000&quot;   0.031        10000
-## 2      xL[[5e+05]]   0.016        10000
+<pre><code>## [1] 500
 </code></pre>
 
 <pre><code class="r">microbenchmark(
-  x[500000],
-  xL[[500000]],
-  xEnv[[&quot;500000&quot;]],
-  xEnv$&quot;500000&quot;)
+  x[500],
+  xL[[500]],
+  xEnv[[&quot;500&quot;]],
+  xEnv$&quot;500&quot;)
 </code></pre>
 
 <pre><code>## Unit: nanoseconds
-##              expr  min     lq    mean median   uq   max neval cld
-##          x[5e+05]  286  334.5  391.49  360.5  408  1881   100  a 
-##       xL[[5e+05]]  126  157.5  295.53  183.5  196  8172   100  a 
-##  xEnv[[&quot;500000&quot;]] 1195 1221.5 1478.58 1239.0 1264 23034   100   b
-##     xEnv$&quot;500000&quot; 1176 1218.5 1360.84 1258.5 1305  9762   100   b
+##           expr min    lq   mean median    uq   max neval cld
+##         x[500] 466 520.5 687.27  540.5 563.0 13909   100   b
+##      xL[[500]] 168 190.5 252.75  218.5 245.0  3511   100  a 
+##  xEnv[[&quot;500&quot;]] 159 170.5 228.14  195.5 219.5  3054   100  a 
+##     xEnv$&quot;500&quot; 199 222.5 297.29  277.0 298.0  2763   100  a
 </code></pre>
-
-<p>The first benchmark indicates that lookup in an environment is nearly as fast as lookup by index in a vector or list, though the microbenchmark suggests that lookup in the environment is somewhat slower. </p>
 
 <h2>Cache-aware programming</h2>
 
@@ -1040,7 +1099,7 @@ system.time(apply(A, 2, mean))  ## operate by column
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   1.116   0.316   1.430
+##   0.856   0.224   1.081
 </code></pre>
 
 <pre><code class="r">A = t(A)
@@ -1048,7 +1107,7 @@ system.time(apply(A, 1, mean))  ## same calculation, but by row
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   1.804   0.272   2.079
+##   1.751   0.296   2.047
 </code></pre>
 
 <pre><code class="r">nr = 800
@@ -1062,8 +1121,8 @@ benchmark(apply(A, 2, mean),  ## by column
 </code></pre>
 
 <pre><code>##                 test elapsed replications
-## 1  apply(A, 2, mean)   0.014           10
-## 2 apply(tA, 1, mean)   0.015           10
+## 1  apply(A, 2, mean)   0.012           10
+## 2 apply(tA, 1, mean)   0.012           10
 </code></pre>
 
 </body>

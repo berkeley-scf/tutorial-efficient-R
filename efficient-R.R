@@ -17,44 +17,84 @@ microbenchmark(
   df[2, 'vals']
 )
 
+## @knitr microbenchmark2
+library(microbenchmark)
+n <- 1000
+x <- matrix(rnorm(n^2), n)
+microbenchmark(
+    t(x) %*% x,
+    crossprod(x),
+    times = 10)
+
 ## @knitr benchmark
 library(rbenchmark)
 # speed of one calculation
-n <- 1000
-x <- matrix(rnorm(n^2), n)
-benchmark(crossprod(x), replications = 10,
+benchmark(t(x) %*% x,
+          crossprod(x),
+          replications = 10,
           columns=c('test', 'elapsed', 'replications'))
-# comparing different approaches to a task
-benchmark(
-  {mns <- rep(NA, n); for(i in 1:n) mns[i] <- mean(x[i , ])},
-  rowMeans(x), 
-  replications = 10,
-  columns=c('test', 'elapsed', 'replications'))
 
 
-## @knitr Rprof
-makeTS <- function(param, len){
-	times <- seq(0, 1, length = len)
-	dd <- rdist(times)
-	C <- exp(-dd/param)
-	U <- chol(C)
-	white <- rnorm(len)
-	return(crossprod(U, white))
+
+## @knitr Rprof-fun
+lr_slow <- function(y, x) {
+  xtx <- t(x) %*% x
+  xty <- t(x) %*% y
+  inv <- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  return(inv %*% xty)
 }
+
+## @knitr Rprof-run1
+
+## generate random observations and random matrix of predictors
+y <- rnorm(5000)
+x <- matrix(rnorm(5000*1000), nrow = 5000)
+
+library(proftools)
+
+pd1 <- profileExpr(lr_slow(y, x))
+hotPaths(pd1)
+hotPaths(pd1, value = 'time')
+
+
+## @knitr Rprof-run2
+lr_medium <- function(y, x) {
+  xtx <- crossprod(x)
+  xty <- crossprod(x, y)
+  inv <- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  return(inv %*% xty)
+}                   
+
+pd2 <- profileExpr(lr_medium(y, x))
+hotPaths(pd2)
+hotPaths(pd2, value = 'time')
+
+
+## @knitr Rprof-run3
+lr_fast <- function(y, x) {
+  xtx <- crossprod(x)
+  xty <- crossprod(x, y)
+  U <- chol(xtx)
+  tmp <- backsolve(U, xty, transpose = TRUE)
+  return(backsolve(U, tmp))
+}
+
+pd3 <- profileExpr(lr_fast(y, x))
+hotPaths(pd3)
+hotPaths(pd3, value = 'time')
+
+
+## @knitr Rprof-old
 
 ## old approach:
 library(fields)
-if(FALSE) { # not running this, just for illustration
-    Rprof("makeTS.prof", interval = 0.005, line.profiling = TRUE)
-    out <- makeTS(0.1, 3000)
-    Rprof(NULL)
-    summaryRprof("makeTS.prof")
-}
 
-## using proftools instead:
-library(proftools)
-pd <- profileExpr(makeTS(0.1, 3000))
-hotPaths(pd)
+Rprof("makeRegr.prof", interval = 0.005, line.profiling = TRUE)
+out <- lr_slow(y, x)
+Rprof(NULL)
+summaryRprof("makeRegr.prof")
+
+
 
 
 ## @knitr preallocate
@@ -223,36 +263,29 @@ select <- c("h", "h", "a", "c")
 vals[select]
 
 ## @knitr index-lookup
-n <- 1000000
+n <- 1000
 x <- 1:n
 xL <- as.list(x)
 nms <- as.character(x)
 names(x) <- nms
 names(xL) <- nms
-benchmark(
-    x[500000],  # index lookup in vector
-    x["500000"], # name lookup in vector
-    xL[[500000]], # index lookup in list
-    xL[["500000"]], # name lookup in list
-  replications = 10, columns=c('test', 'elapsed', 'replications'))
+microbenchmark(
+    x[500],  # index lookup in vector
+    x["500"], # name lookup in vector
+    xL[[500]], # index lookup in list
+    xL[["500"]]) # name lookup in list
 
 
 ## @knitr env-lookup
 xEnv <- as.environment(xL)  # convert from a named list
-xEnv$"500000"  
+xEnv$"500"  
 # I need quotes above because numeric; otherwise xEnv$nameOfObject is fine
-xEnv[["500000"]]
-benchmark(
-  x[500000],
-  xL[[500000]],
-  xEnv[["500000"]],
-  xEnv$"500000",
-  replications = 10000, columns=c('test', 'elapsed', 'replications'))
+xEnv[["500"]]
 microbenchmark(
-  x[500000],
-  xL[[500000]],
-  xEnv[["500000"]],
-  xEnv$"500000")
+  x[500],
+  xL[[500]],
+  xEnv[["500"]],
+  xEnv$"500")
 
 
 ## @knitr cache-aware
