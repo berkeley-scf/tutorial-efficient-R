@@ -420,7 +420,7 @@ In contrast, we can look up by name in an environment very quickly, because envi
 ```
 
 
-## Cache-aware programming
+## 4.6 Cache-aware programming
 
 In addition to main memory (what we usually mean when we talk about RAM), computers also have memory caches, which are small amounts of fast memory that can be accessed very quickly by the processor. For example your computer might have L1, L2, and L3 caches, with L1 the smallest and fastest and L3 the largest and slowest. The idea is to try to have the data that is most used by the processor in the cache. 
 
