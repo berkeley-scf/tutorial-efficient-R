@@ -291,7 +291,7 @@ system.time({
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.236   0.012   0.248
+##   0.231   0.020   0.251
 </code></pre>
 
 <pre><code class="r">system.time(rowMeans(x))
@@ -316,10 +316,10 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: nanoseconds
-##           expr   min      lq     mean median      uq   max neval cld
-##       df[2, 1] 13869 14563.0 15817.02  14748 14964.0 93003   100   b
-##     df$vals[2]   997  1625.5  2306.03   2049  2162.5 27105   100  a 
-##  df[2, &quot;vals&quot;] 13792 14334.5 14845.36  14501 14864.0 24041   100   b
+##           expr   min      lq     mean  median      uq   max neval cld
+##       df[2, 1] 13692 14349.5 15099.59 14595.0 14924.5 31647   100   b
+##     df$vals[2]   959  1595.0  2139.88  2072.5  2174.5  9987   100  a 
+##  df[2, &quot;vals&quot;] 13761 14216.0 15452.07 14507.5 14808.0 75373   100   b
 </code></pre>
 
 <p><em>microbenchmark</em> is also a good way to compare slower calculations, e.g., doing a crossproduct via <em>crossproduct()</em> compared to &ldquo;manually&rdquo;:</p>
@@ -335,8 +335,8 @@ microbenchmark(
 
 <pre><code>## Unit: milliseconds
 ##          expr      min       lq     mean   median       uq      max neval
-##    t(x) %*% x 87.71254 88.20979 89.55519 88.74442 89.52175 97.70361    10
-##  crossprod(x) 43.63842 44.12943 44.76383 44.61579 45.39003 46.04143    10
+##    t(x) %*% x 88.57042 88.62179 89.81577 88.72816 89.26367 96.27504    10
+##  crossprod(x) 44.20568 44.36209 45.53898 44.60348 44.82433 53.05143    10
 ##  cld
 ##    b
 ##   a
@@ -353,8 +353,8 @@ benchmark(t(x) %*% x,
 </code></pre>
 
 <pre><code>##           test elapsed replications
-## 2 crossprod(x)   0.428           10
-## 1   t(x) %*% x   0.863           10
+## 2 crossprod(x)   0.424           10
+## 1   t(x) %*% x   0.866           10
 </code></pre>
 
 <p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
@@ -469,10 +469,9 @@ hotPaths(pd3)
 
 <pre><code>##  path                   total.pct self.pct
 ##  lr_fast                100.00     0.00   
-##  . crossprod (&lt;text&gt;:2)  81.82    81.82   
+##  . crossprod (&lt;text&gt;:2)  90.91    90.91   
 ##  . chol (&lt;text&gt;:4)        9.09     0.00   
-##  . . chol.default         9.09     9.09   
-##  . crossprod (&lt;text&gt;:3)   9.09     9.09
+##  . . chol.default         9.09     9.09
 </code></pre>
 
 <pre><code class="r">hotPaths(pd3, value = &#39;time&#39;)
@@ -480,10 +479,9 @@ hotPaths(pd3)
 
 <pre><code>##  path                   total.time self.time
 ##  lr_fast                0.22       0.00     
-##  . crossprod (&lt;text&gt;:2) 0.18       0.18     
+##  . crossprod (&lt;text&gt;:2) 0.20       0.20     
 ##  . chol (&lt;text&gt;:4)      0.02       0.00     
-##  . . chol.default       0.02       0.02     
-##  . crossprod (&lt;text&gt;:3) 0.02       0.02
+##  . . chol.default       0.02       0.02
 </code></pre>
 
 <p>We can see we get another speedup from that final version of the code. (But beware my earlier caution that if comparing times between implementations, we should have replication.)</p>
@@ -517,6 +515,7 @@ z &lt;- rnorm(n)
 
 fun1 &lt;- function(vals) {
    x &lt;- exp(vals[1])
+   n &lt;- length(vals) 
    for(i in 2:n) x &lt;- c(x, exp(vals[i]))
    return(x)
 }
@@ -535,9 +534,9 @@ replications = 20, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun1(z)   2.027           20
-## 2 fun2(z)   0.026           20
-## 3 fun3(z)   0.005           20
+## 1 fun1(z)   2.061           20
+## 2 fun2(z)   0.023           20
+## 3 fun3(z)   0.006           20
 </code></pre>
 
 <p>It&#39;s not necessary to use <em>as.numeric</em> above though it saves
@@ -561,8 +560,8 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ## 2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
 ## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
 ##   elapsed replications
-## 2   0.053           10
-## 1   0.147           10
+## 2   0.056           10
+## 1   0.150           10
 </code></pre>
 
 <p>For lists, we can do this</p>
@@ -650,7 +649,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##     }
 ##     .Internal(mean(x))
 ## }
-## &lt;bytecode: 0x559af71c2bd0&gt;
+## &lt;bytecode: 0x55d05e0e2d70&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -663,7 +662,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##         stop(&quot;complex matrices not permitted at present&quot;)
 ##     .Internal(La_chol(as.matrix(x), pivot, tol))
 ## }
-## &lt;bytecode: 0x559afb2c2ad0&gt;
+## &lt;bytecode: 0x55d062194bf0&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -761,8 +760,8 @@ benchmark(
 </code></pre>
 
 <pre><code>##                       test elapsed replications
-## 1 out &lt;- apply(x, 1, mean)   1.829           10
-## 2       out &lt;- rowMeans(x)   0.209           10
+## 1 out &lt;- apply(x, 1, mean)   1.849           10
+## 2       out &lt;- rowMeans(x)   0.207           10
 </code></pre>
 
 <p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
@@ -772,7 +771,7 @@ off a mean from each column, using <em>sweep</em></p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.111   0.032   0.143
+##   0.141   0.003   0.145
 </code></pre>
 
 <p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
@@ -784,7 +783,7 @@ need to transpose twice. </p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.281   0.024   0.305
+##   0.282   0.029   0.310
 </code></pre>
 
 <pre><code class="r">identical(out, out2)
@@ -817,7 +816,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.086   0.000   0.086
+##   0.084   0.000   0.084
 </code></pre>
 
 <pre><code class="r">system.time({
@@ -829,7 +828,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.082   0.000   0.082
+##   0.087   0.000   0.087
 </code></pre>
 
 <p>And here&#39;s an example where <em>sapply</em> is much faster, because the core function evaluation at each iteration is very fast:</p>
@@ -837,21 +836,29 @@ system.time(
 <pre><code class="r">z &lt;- rnorm(10000)
 fun2 &lt;- function(vals) {
     x &lt;- as.numeric(NA)
-    length(x) &lt;- length(vals)
+    n &lt;- length(vals)
+    length(x) &lt;- n
     for(i in 1:n) x[i] &lt;- exp(vals[i])
     return(x)
 }
+
 fun4 &lt;- function(vals) {
     x &lt;- sapply(vals, exp)
     return(x)
 }
 
-benchmark(fun2(z), fun4(z),
+fun3 &lt;- function(vals) {
+    x &lt;- exp(vals)
+    return(x)
+}
+
+benchmark(fun2(z), fun4(z), fun3(z),
 replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
 <pre><code>##      test elapsed replications
-## 1 fun2(z)   2.255           10
+## 1 fun2(z)   0.011           10
+## 3 fun3(z)   0.004           10
 ## 2 fun4(z)   0.035           10
 </code></pre>
 
@@ -867,7 +874,7 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ##         X &lt;- as.list(X)
 ##     .Internal(lapply(X, FUN))
 ## }
-## &lt;bytecode: 0x559af5368f40&gt;
+## &lt;bytecode: 0x55d05c27b820&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -884,9 +891,9 @@ benchmark(apply(mat, 1, sum),
 </code></pre>
 
 <pre><code>##                        test elapsed replications
-## 1        apply(mat, 1, sum)   0.031           10
+## 1        apply(mat, 1, sum)   0.037           10
 ## 2 mat %*% rep(1, ncol(mat))   0.002           10
-## 3              rowSums(mat)   0.007           10
+## 3              rowSums(mat)   0.006           10
 </code></pre>
 
 <p>On the other hand, big matrix operations can be slow. <strong>Challenge</strong>: Suppose you
@@ -1025,11 +1032,11 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: nanoseconds
-##         expr   min      lq     mean  median      uq    max neval cld
-##       x[500]  1161  1452.0  1715.65  1631.5  1942.5   2767   100 a  
-##     x[&quot;500&quot;] 11117 11800.5 13812.84 12073.5 12433.5 168811   100  b 
-##    xL[[500]]   451   698.5   916.10   833.5  1012.5   7390   100 a  
-##  xL[[&quot;500&quot;]] 22140 23256.5 23789.66 23495.0 23731.5  39917   100   c
+##         expr   min      lq     mean  median      uq   max neval cld
+##       x[500]   439   475.5   522.18   499.0   533.5  1265   100 a  
+##     x[&quot;500&quot;]  5702  5772.0  6784.64  5800.0  5843.5 92263   100  b 
+##    xL[[500]]   156   193.0   269.90   213.0   238.5  5488   100 a  
+##  xL[[&quot;500&quot;]] 11298 11354.5 11847.55 11390.5 11433.0 19982   100   c
 </code></pre>
 
 <p>Lookup by name is slow because R needs to scan through the objects
@@ -1089,7 +1096,7 @@ system.time(apply(A, 2, mean))  ## operate by column
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.883   0.256   1.139
+##   0.872   0.248   1.120
 </code></pre>
 
 <pre><code class="r">A = t(A)
@@ -1097,7 +1104,7 @@ system.time(apply(A, 1, mean))  ## same calculation, but by row
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   1.830   0.339   2.169
+##   1.688   0.340   2.029
 </code></pre>
 
 <pre><code class="r">nr = 800
@@ -1111,7 +1118,7 @@ benchmark(apply(A, 2, mean),  ## by column
 </code></pre>
 
 <pre><code>##                 test elapsed replications
-## 1  apply(A, 2, mean)   0.012           10
+## 1  apply(A, 2, mean)   0.011           10
 ## 2 apply(tA, 1, mean)   0.012           10
 </code></pre>
 

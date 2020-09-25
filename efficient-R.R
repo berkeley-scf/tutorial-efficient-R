@@ -104,6 +104,7 @@ z <- rnorm(n)
 
 fun1 <- function(vals) {
    x <- exp(vals[1])
+   n <- length(vals) 
    for(i in 2:n) x <- c(x, exp(vals[i]))
    return(x)
 }
@@ -201,16 +202,23 @@ system.time({
 z <- rnorm(10000)
 fun2 <- function(vals) {
     x <- as.numeric(NA)
-    length(x) <- length(vals)
+    n <- length(vals)
+    length(x) <- n
     for(i in 1:n) x[i] <- exp(vals[i])
     return(x)
 }
+
 fun4 <- function(vals) {
     x <- sapply(vals, exp)
     return(x)
 }
-    
-benchmark(fun2(z), fun4(z),
+
+fun3 <- function(vals) {
+    x <- exp(vals)
+    return(x)
+}
+
+benchmark(fun2(z), fun4(z), fun3(z),
 replications = 10, columns=c('test', 'elapsed', 'replications'))
 
 
