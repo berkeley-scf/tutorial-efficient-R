@@ -314,7 +314,8 @@ than writing a loop.
 ```{r, apply-vs-for}
 ```
 
-And here's an example where *sapply* is much faster, because the core function evaluation at each iteration is very fast:
+I believe that in old version of the R the *sapply* in the next example was faster than in R, but that doesn't seem to be the case currently.
+I think this may be related to various somewhat recent improvements in R's handling of loops, possibly including the use of the byte compiler.
 
 ```{r, apply-vs-for-part2}
 ```

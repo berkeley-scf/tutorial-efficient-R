@@ -199,7 +199,7 @@ system.time({
 
 ## @knitr apply-vs-for-part2
 
-z <- rnorm(10000)
+z <- rnorm(1e6)
 fun2 <- function(vals) {
     x <- as.numeric(NA)
     n <- length(vals)
