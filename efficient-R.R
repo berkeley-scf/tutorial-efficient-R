@@ -102,23 +102,23 @@ summaryRprof("makeRegr.prof")
 n <- 10000
 z <- rnorm(n)
 
-fun1 <- function(vals) {
+fun_append <- function(vals) {
    x <- exp(vals[1])
    n <- length(vals) 
    for(i in 2:n) x <- c(x, exp(vals[i]))
    return(x)
 }
-fun2 <- function(vals) {
+fun_prealloc <- function(vals) {
    n <- length(vals)
    x <- rep(as.numeric(NA), n)
    for(i in 1:n) x[i] <- exp(vals[i])
    return(x)
 }
-fun3 <- function(vals) {
+fun_vec <- function(vals) {
   x <- exp(vals)
   return(x)
 }
-benchmark(fun1(z), fun2(z), fun3(z),
+benchmark(fun_append(z), fun_prealloc(z), fun_vec(z),
 replications = 20, columns=c('test', 'elapsed', 'replications'))
 
 ## @knitr init-matrix
@@ -200,7 +200,7 @@ system.time({
 ## @knitr apply-vs-for-part2
 
 z <- rnorm(1e6)
-fun2 <- function(vals) {
+fun_loop <- function(vals) {
     x <- as.numeric(NA)
     n <- length(vals)
     length(x) <- n
@@ -208,17 +208,17 @@ fun2 <- function(vals) {
     return(x)
 }
 
-fun4 <- function(vals) {
+fun_sapply <- function(vals) {
     x <- sapply(vals, exp)
     return(x)
 }
 
-fun3 <- function(vals) {
+fun_vec <- function(vals) {
     x <- exp(vals)
     return(x)
 }
 
-benchmark(fun2(z), fun4(z), fun3(z),
+benchmark(fun_loop(z), fun_sapply(z), fun_vec(z),
 replications = 10, columns=c('test', 'elapsed', 'replications'))
 
 
@@ -261,56 +261,65 @@ info <- data.frame(
     numGrade = c(95, 85, 75),
     fail = c(FALSE, FALSE, TRUE) )
 grp <- match(df$clusterLabel, info$grade) 
-df$numGrade = info$numGrade[grp]
+df$numGrade <- info$numGrade[grp]
 df
 
 ## @knitr name-lookup
-vals <- rnorm(10)
-names(vals) <- letters[1:10]
-select <- c("h", "h", "a", "c")
-vals[select]
+info2 <- info$numGrade
+names(info2) <- info$grade
+info2
+info2[df$clusterLabel]
+
 
 ## @knitr index-lookup
 n <- 1000
 x <- 1:n
 xL <- as.list(x)
-nms <- as.character(x)
+nms <- paste0("var", as.character(x))
 names(x) <- nms
 names(xL) <- nms
+x[1:3]
+xL[1:3]
 microbenchmark(
     x[500],  # index lookup in vector
-    x["500"], # name lookup in vector
+    x["var500"], # name lookup in vector
     xL[[500]], # index lookup in list
-    xL[["500"]]) # name lookup in list
+    xL[["var500"]]) # name lookup in list
 
 
 ## @knitr env-lookup
 xEnv <- as.environment(xL)  # convert from a named list
-xEnv$"500"  
-# I need quotes above because numeric; otherwise xEnv$nameOfObject is fine
-xEnv[["500"]]
+xEnv$var500  
 microbenchmark(
   x[500],
   xL[[500]],
-  xEnv[["500"]],
-  xEnv$"500")
-
+  xEnv[["var500"]],
+  xEnv$var500
+)
 
 ## @knitr cache-aware
 
-nr = 800000
-nc = 100
+nr <- 800000
+nc <- 100
 ## large matrix that won't fit in cache
-A = matrix(rnorm(nr * nc), nrow = nr)
-system.time(apply(A, 2, mean))  ## operate by column
-A = t(A)
-system.time(apply(A, 1, mean))  ## same calculation, but by row
+A <- matrix(rnorm(nr * nc), nrow = nr)
+tA <- t(A)
+benchmark(
+    apply(A, 2, mean),   ## operate by column
+    apply(tA, 1, mean),  ## exact same calculation, but by row
+    replications = 10, columns=c('test', 'elapsed', 'replications'))
 
-nr = 800
-nc = 100
+## @knitr cache-aware2
+
+nr <- 800
+nc <- 100
 ## small matrix that should fit in cache
-A = matrix(rnorm(nr * nc), nrow = nr)
-tA = t(A)
+A <- matrix(rnorm(nr * nc), nrow = nr)
+## Yep, the size is less than the L3 cache:
+object.size(A)
+memuse::Sys.cachesize()
+
+tA <- t(A)
 benchmark(apply(A, 2, mean),  ## by column
           apply(tA, 1, mean),  ## by row
   replications = 10, columns=c('test', 'elapsed', 'replications'))

@@ -272,7 +272,7 @@ doesn&#39;t.</p>
 
 <p>Any calls to BLAS or to the LAPACK libraries that use BLAS to do higher-level linear algebra calculations will be nearly as fast as if you used C/C++ or Matlab, because R is using the compiled code from the BLAS and LAPACK libraries. </p>
 
-<p>In addition, the BLAS libraries above are threaded &ndash; they can use more than one core, and often will do so by default. More details in the tutorial on parallel programming. </p>
+<p>In addition, the BLAS libraries above are threaded &ndash; they can use more than one core, and often will do so by default. More details in the <a href="https://github.com/berkeley-scf/tutorial-parallel-basics">SCF tutorial on parallel programming</a>. </p>
 
 <h1>3) Tools for assessing efficiency</h1>
 
@@ -291,14 +291,14 @@ system.time({
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.238   0.016   0.255
+##   0.251   0.011   0.262
 </code></pre>
 
 <pre><code class="r">system.time(rowMeans(x))
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.024   0.000   0.023
+##   0.026   0.000   0.026
 </code></pre>
 
 <p>In general, <em>user</em> time gives the CPU time spent by R and <em>system</em> time gives the CPU time spent by the kernel (the operating system) on behalf of R. Operations that fall under system time include opening files, doing input or output, starting other processes, etc.</p>
@@ -315,11 +315,11 @@ microbenchmark(
 )
 </code></pre>
 
-<pre><code>## Unit: microseconds
-##           expr    min      lq     mean  median      uq    max neval cld
-##       df[2, 1] 13.982 14.5520 15.08594 14.8910 15.1485 22.980   100   b
-##     df$vals[2]  1.014  1.9675  2.40240  2.1650  2.3220 23.304   100  a 
-##  df[2, &quot;vals&quot;] 13.553 14.3555 15.52685 14.6075 14.8860 62.408   100   b
+<pre><code>## Unit: nanoseconds
+##           expr   min      lq     mean median      uq   max neval cld
+##       df[2, 1] 13976 14559.0 15169.09  14823 15000.0 27324   100   b
+##     df$vals[2]   748  1063.0  1723.97   1591  1697.5 13343   100  a 
+##  df[2, &quot;vals&quot;] 13834 14413.5 15216.43  14621 14791.0 45620   100   b
 </code></pre>
 
 <p><em>microbenchmark</em> is also a good way to compare slower calculations, e.g., doing a crossproduct via <em>crossproduct()</em> compared to &ldquo;manually&rdquo;:</p>
@@ -334,13 +334,12 @@ microbenchmark(
 </code></pre>
 
 <pre><code>## Unit: milliseconds
-##          expr      min       lq     mean   median       uq      max neval
-##    t(x) %*% x 83.37811 84.06533 87.49997 87.84960 89.24589 95.10511    10
-##  crossprod(x) 41.63207 42.61395 43.96466 43.93525 45.33973 45.89729    10
-##  cld
-##    b
-##   a
+##          expr      min       lq     mean   median       uq      max neval cld
+##    t(x) %*% x 43.75747 43.79796 52.49518 48.89571 57.60102 78.42165    10   b
+##  crossprod(x) 19.58690 19.67473 23.19242 19.82202 27.82647 33.67125    10  a
 </code></pre>
+
+<p><strong>Challenge</strong>: What is inefficient about the manual approach above?</p>
 
 <p>An alternative that also automates timings and comparisons is the <em>benchmark</em> function from  the <em>rbenchmark</em> package, but there&#39;s not really a reason to use it when <em>microbenchmark</em> is available.</p>
 
@@ -353,8 +352,8 @@ benchmark(t(x) %*% x,
 </code></pre>
 
 <pre><code>##           test elapsed replications
-## 2 crossprod(x)   0.424           10
-## 1   t(x) %*% x   0.868           10
+## 2 crossprod(x)   0.275           10
+## 1   t(x) %*% x   0.382           10
 </code></pre>
 
 <p>In general, it&#39;s a good idea to repeat (replicate) your timing, as there is some stochasticity in how fast your computer will run a piece of code at any given moment.</p>
@@ -394,32 +393,38 @@ hotPaths(pd1)
 
 <pre><code>##  path               total.pct self.pct
 ##  lr_slow            100.00     0.00   
-##  . %*% (&lt;text&gt;:2)    55.56    55.56   
-##  . t (&lt;text&gt;:3)      22.22     0.00   
-##  . . t.default       22.22    22.22   
-##  . solve (&lt;text&gt;:4)  16.67     0.00   
-##  . . solve.default   16.67    16.67   
-##  . t (&lt;text&gt;:2)       5.56     0.00   
-##  . . t.default        5.56     5.56
+##  . %*% (&lt;text&gt;:2)    33.65    33.65   
+##  . %*% (&lt;text&gt;:3)     1.92     1.92   
+##  . %*% (&lt;text&gt;:5)     0.96     0.96   
+##  . solve (&lt;text&gt;:4)  38.46     0.00   
+##  . . solve.default   38.46    37.50   
+##  . . . diag           0.96     0.96   
+##  . t (&lt;text&gt;:2)       1.92     0.00   
+##  . . t.default        1.92     1.92   
+##  . t (&lt;text&gt;:3)      23.08     0.00   
+##  . . t.default       23.08    23.08
 </code></pre>
 
 <pre><code class="r">hotPaths(pd1, value = &#39;time&#39;)
 </code></pre>
 
 <pre><code>##  path               total.time self.time
-##  lr_slow            0.72       0.00     
-##  . %*% (&lt;text&gt;:2)   0.40       0.40     
-##  . t (&lt;text&gt;:3)     0.16       0.00     
-##  . . t.default      0.16       0.16     
-##  . solve (&lt;text&gt;:4) 0.12       0.00     
-##  . . solve.default  0.12       0.12     
+##  lr_slow            2.08       0.00     
+##  . %*% (&lt;text&gt;:2)   0.70       0.70     
+##  . %*% (&lt;text&gt;:3)   0.04       0.04     
+##  . %*% (&lt;text&gt;:5)   0.02       0.02     
+##  . solve (&lt;text&gt;:4) 0.80       0.00     
+##  . . solve.default  0.80       0.78     
+##  . . . diag         0.02       0.02     
 ##  . t (&lt;text&gt;:2)     0.04       0.00     
-##  . . t.default      0.04       0.04
+##  . . t.default      0.04       0.04     
+##  . t (&lt;text&gt;:3)     0.48       0.00     
+##  . . t.default      0.48       0.48
 </code></pre>
 
 <p>The first call to <em>hotPaths</em> shows the percentage of time spent in each call, while the second shows the actual time.</p>
 
-<p>Note the nestedness of the results. For example, essentially all the time spent in <em>solve</em> is actually spent in <em>solve.default</em>. In this case <em>solve</em> is just a generic method that immediately calls <em>solve.default</em>.</p>
+<p>Note the nestedness of the results. For example, essentially all the time spent in <em>solve</em> is actually spent in <em>solve.default</em>. In this case <em>solve</em> is just an S3 generic method that immediately calls the specific method <em>solve.default</em>.</p>
 
 <p>We can see that a lot of time is spent in doing the two crossproducts. So let&#39;s try using <em>crossprod</em> to make those steps faster.</p>
 
@@ -436,22 +441,26 @@ hotPaths(pd2)
 
 <pre><code>##  path                   total.pct self.pct
 ##  lr_medium              100.00     0.00   
-##  . crossprod (&lt;text&gt;:2)  58.82    58.82   
-##  . solve (&lt;text&gt;:4)      41.18     0.00   
-##  . . solve.default       41.18    41.18
+##  . crossprod (&lt;text&gt;:2)  46.51    46.51   
+##  . crossprod (&lt;text&gt;:3)   4.65     4.65   
+##  . solve (&lt;text&gt;:4)      48.84     0.00   
+##  . . solve.default       48.84    46.51   
+##  . . . diag               2.33     2.33
 </code></pre>
 
 <pre><code class="r">hotPaths(pd2, value = &#39;time&#39;)
 </code></pre>
 
 <pre><code>##  path                   total.time self.time
-##  lr_medium              0.34       0.00     
-##  . crossprod (&lt;text&gt;:2) 0.20       0.20     
-##  . solve (&lt;text&gt;:4)     0.14       0.00     
-##  . . solve.default      0.14       0.14
+##  lr_medium              0.86       0.00     
+##  . crossprod (&lt;text&gt;:2) 0.40       0.40     
+##  . crossprod (&lt;text&gt;:3) 0.04       0.04     
+##  . solve (&lt;text&gt;:4)     0.42       0.00     
+##  . . solve.default      0.42       0.40     
+##  . . . diag             0.02       0.02
 </code></pre>
 
-<p>First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using <em>solve</em>. (There&#39;s not much we can do to speed up the <em>crossprod</em> operations.) It&#39;s well known that one should avoid computing the explicit inverse if one can avoid it. Here&#39;s a faster version that avoids it.</p>
+<p>First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using <em>solve</em>. (There&#39;s not much we can do to speed up the <em>crossprod</em> operations, apart from making sure we are using a fast BLAS and potentially a parallelized BLAS.) It&#39;s well known that one should avoid computing the explicit inverse if one can avoid it. Here&#39;s a faster version that avoids it.</p>
 
 <pre><code class="r">lr_fast &lt;- function(y, x) {
   xtx &lt;- crossprod(x)
@@ -466,20 +475,24 @@ hotPaths(pd3)
 </code></pre>
 
 <pre><code>##  path                   total.pct self.pct
-##  lr_fast                100.00     0.00   
-##  . crossprod (&lt;text&gt;:2)  90.91    90.91   
-##  . chol (&lt;text&gt;:4)        9.09     0.00   
-##  . . chol.default         9.09     9.09
+##  lr_fast                100        0      
+##  . backsolve (&lt;text&gt;:6)   2        2      
+##  . chol (&lt;text&gt;:4)       12        0      
+##  . . chol.default        12       12      
+##  . crossprod (&lt;text&gt;:2)  80       80      
+##  . crossprod (&lt;text&gt;:3)   6        6
 </code></pre>
 
 <pre><code class="r">hotPaths(pd3, value = &#39;time&#39;)
 </code></pre>
 
 <pre><code>##  path                   total.time self.time
-##  lr_fast                0.22       0.00     
-##  . crossprod (&lt;text&gt;:2) 0.20       0.20     
-##  . chol (&lt;text&gt;:4)      0.02       0.00     
-##  . . chol.default       0.02       0.02
+##  lr_fast                1.00       0.00     
+##  . backsolve (&lt;text&gt;:6) 0.02       0.02     
+##  . chol (&lt;text&gt;:4)      0.12       0.00     
+##  . . chol.default       0.12       0.12     
+##  . crossprod (&lt;text&gt;:2) 0.80       0.80     
+##  . crossprod (&lt;text&gt;:3) 0.06       0.06
 </code></pre>
 
 <p>We can see we get another speedup from that final version of the code. (But beware my earlier caution that if comparing times between implementations, we should have replication.)</p>
@@ -511,35 +524,35 @@ like this using loops because we would in practice use vectorized calculations.<
 <pre><code class="r">n &lt;- 10000
 z &lt;- rnorm(n)
 
-fun1 &lt;- function(vals) {
+fun_append &lt;- function(vals) {
    x &lt;- exp(vals[1])
    n &lt;- length(vals) 
    for(i in 2:n) x &lt;- c(x, exp(vals[i]))
    return(x)
 }
-fun2 &lt;- function(vals) {
+fun_prealloc &lt;- function(vals) {
    n &lt;- length(vals)
    x &lt;- rep(as.numeric(NA), n)
    for(i in 1:n) x[i] &lt;- exp(vals[i])
    return(x)
 }
-fun3 &lt;- function(vals) {
+fun_vec &lt;- function(vals) {
   x &lt;- exp(vals)
   return(x)
 }
-benchmark(fun1(z), fun2(z), fun3(z),
+benchmark(fun_append(z), fun_prealloc(z), fun_vec(z),
 replications = 20, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
-<pre><code>##      test elapsed replications
-## 1 fun1(z)   2.058           20
-## 2 fun2(z)   0.022           20
-## 3 fun3(z)   0.006           20
+<pre><code>##              test elapsed replications
+## 1   fun_append(z)   2.047           20
+## 2 fun_prealloc(z)   0.019           20
+## 3      fun_vec(z)   0.004           20
 </code></pre>
 
 <p>It&#39;s not necessary to use <em>as.numeric</em> above though it saves
 a bit of time. <strong>Challenge</strong>: figure out why I have <code>as.numeric(NA)</code>
-and not just <code>NA</code>.</p>
+and not just <code>NA</code>. Hint: what is the type of <code>NA</code>?</p>
 
 <p>In some cases, we can speed up the initialization by initializing a vector of length one and then changing its length and/or dimension, although in  many practical
 circumstances this would be overkill.</p>
@@ -558,8 +571,8 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ## 2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
 ## 1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
 ##   elapsed replications
-## 2   0.056           10
-## 1   0.150           10
+## 2   0.055           10
+## 1   0.147           10
 </code></pre>
 
 <p>For lists, we can do this</p>
@@ -647,7 +660,7 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 ##     }
 ##     .Internal(mean(x))
 ## }
-## &lt;bytecode: 0x55ebdd7b91d0&gt;
+## &lt;bytecode: 0x5646e07c69f0&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
@@ -656,18 +669,21 @@ or <em>.Fortran</em>. Let&#39;s take a look at the code for <code>+</code>,
 
 <pre><code>## function (x, pivot = FALSE, LINPACK = FALSE, tol = -1, ...) 
 ## {
+##     if (!missing(LINPACK)) 
+##         stop(&quot;the LINPACK argument has been defunct since R 3.1.0&quot;)
 ##     if (is.complex(x)) 
 ##         stop(&quot;complex matrices not permitted at present&quot;)
 ##     .Internal(La_chol(as.matrix(x), pivot, tol))
 ## }
-## &lt;bytecode: 0x55ebdf073f20&gt;
+## &lt;bytecode: 0x5646e34aa168&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
 <p>Many R functions allow you to pass in vectors, and operate on those
 vectors in vectorized fashion. So before writing a for loop, look
 at the help information on the relevant function(s) to see if they
-operate in a vectorized fashion. Functions might take vectors for one or more of their arguments.</p>
+operate in a vectorized fashion. Functions might take vectors for one or more of their arguments.
+Here we see that <code>nchar</code> is vectorized and that various arguments to <code>substring</code> can be vectors.</p>
 
 <pre><code class="r">address &lt;- c(&quot;Four score and seven years ago our fathers brought forth&quot;,
              &quot; on this continent, a new nation, conceived in Liberty, &quot;,
@@ -689,8 +705,8 @@ startIndices
 <pre><code class="r">substring(address[1], startIndices, startIndices + 1)
 </code></pre>
 
-<pre><code>##  [1] &quot;Fo&quot; &quot;r &quot; &quot;co&quot; &quot;e &quot; &quot;nd&quot; &quot;se&quot; &quot;en&quot; &quot;ye&quot; &quot;rs&quot; &quot;ag&quot; &quot; o&quot; &quot;r &quot; &quot;at&quot; &quot;er&quot;
-## [15] &quot; b&quot; &quot;ou&quot; &quot;ht&quot; &quot;fo&quot; &quot;th&quot;
+<pre><code>##  [1] &quot;Fo&quot; &quot;r &quot; &quot;co&quot; &quot;e &quot; &quot;nd&quot; &quot;se&quot; &quot;en&quot; &quot;ye&quot; &quot;rs&quot; &quot;ag&quot; &quot; o&quot; &quot;r &quot; &quot;at&quot; &quot;er&quot; &quot; b&quot;
+## [16] &quot;ou&quot; &quot;ht&quot; &quot;fo&quot; &quot;th&quot;
 </code></pre>
 
 <p><strong>Challenge</strong>: Consider the chi-squared statistic involved in
@@ -746,8 +762,11 @@ then compare the more efficient code to make sure the results are the same. It&#
 
 <h2>4.3) Using <em>apply</em> and specialized functions</h2>
 
-<p>Another core efficiency strategy is to use the <em>apply</em> functionality.
-Even better than <em>apply</em> for calculating sums or means of columns
+<p>Historically, another core efficiency strategy in R has been to use the <em>apply</em> functionality (e.g., <code>apply</code>, <code>sapply</code>, <code>lapply</code>, <code>mapply</code>, etc.).</p>
+
+<h3>Some faster alternatives to <code>apply</code></h3>
+
+<p>Note that even better than <em>apply</em> for calculating sums or means of columns
 or rows (it also can be used for arrays) is {row,col}{Sums,Means}.</p>
 
 <pre><code class="r">n &lt;- 3000; x &lt;- matrix(rnorm(n * n), nr = n)
@@ -758,8 +777,8 @@ benchmark(
 </code></pre>
 
 <pre><code>##                       test elapsed replications
-## 1 out &lt;- apply(x, 1, mean)   1.823           10
-## 2       out &lt;- rowMeans(x)   0.214           10
+## 1 out &lt;- apply(x, 1, mean)   1.562           10
+## 2       out &lt;- rowMeans(x)   0.232           10
 </code></pre>
 
 <p>We can &#39;sweep&#39; out a summary statistic, such as subtracting
@@ -769,7 +788,7 @@ off a mean from each column, using <em>sweep</em></p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.138   0.008   0.146
+##   0.138   0.009   0.147
 </code></pre>
 
 <p>Here&#39;s a trick for doing the sweep based on vectorized calculations, remembering
@@ -781,7 +800,7 @@ need to transpose twice. </p>
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.278   0.024   0.303
+##   0.293   0.011   0.303
 </code></pre>
 
 <pre><code class="r">identical(out, out2)
@@ -792,9 +811,10 @@ need to transpose twice. </p>
 
 <h3>Are <em>apply</em>, <em>lapply</em>, <em>sapply</em>, etc. faster than loops?</h3>
 
-<p>Using <em>apply</em> with matrices and versions of <em>apply</em> with lists may or may not be faster
-than looping but generally produces cleaner code. Whether looping
-is slower will depend on whether a substantial part of the work is
+<p>Using <em>apply</em> with matrices and versions of <em>apply</em> with lists or vectors (e.g., <code>lapply</code>, <code>sapply</code>) may or may not be faster
+than looping but generally produces cleaner code.</p>
+
+<p>Whether looping and use of apply variants is slow will depend in part on whether a substantial part of the work is
 in the overhead involved in the looping or in the time required by the function
 evaluation on each of the elements. If you&#39;re worried about speed,
 it&#39;s a good idea to benchmark the <em>apply</em> variant against looping.</p>
@@ -814,7 +834,7 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.084   0.000   0.084
+##   0.087   0.000   0.086
 </code></pre>
 
 <pre><code class="r">system.time({
@@ -826,14 +846,14 @@ system.time(
 </code></pre>
 
 <pre><code>##    user  system elapsed 
-##   0.083   0.000   0.082
+##   0.087   0.000   0.087
 </code></pre>
 
-<p>I believe that in old version of the R the <em>sapply</em> in the next example was faster than in R, but that doesn&#39;t seem to be the case currently.
+<p>And here&#39;s an example, where (unlike the previous example) the core computation is very fast, so we might expect the overhead of looping to be important. I believe that in old versions of R the <em>sapply</em> in this  example was faster than looping in R, but that doesn&#39;t seem to be the case currently.
 I think this may be related to various somewhat recent improvements in R&#39;s handling of loops, possibly including the use of the byte compiler.</p>
 
 <pre><code class="r">z &lt;- rnorm(1e6)
-fun2 &lt;- function(vals) {
+fun_loop &lt;- function(vals) {
     x &lt;- as.numeric(NA)
     n &lt;- length(vals)
     length(x) &lt;- n
@@ -841,27 +861,27 @@ fun2 &lt;- function(vals) {
     return(x)
 }
 
-fun4 &lt;- function(vals) {
+fun_sapply &lt;- function(vals) {
     x &lt;- sapply(vals, exp)
     return(x)
 }
 
-fun3 &lt;- function(vals) {
+fun_vec &lt;- function(vals) {
     x &lt;- exp(vals)
     return(x)
 }
 
-benchmark(fun2(z), fun4(z), fun3(z),
+benchmark(fun_loop(z), fun_sapply(z), fun_vec(z),
 replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
-<pre><code>##      test elapsed replications
-## 1 fun2(z)   1.123           10
-## 3 fun3(z)   0.201           10
-## 2 fun4(z)   6.739           10
+<pre><code>##            test elapsed replications
+## 1   fun_loop(z)   0.946           10
+## 2 fun_sapply(z)   4.792           10
+## 3    fun_vec(z)   0.113           10
 </code></pre>
 
-<p>You&#39;ll notice if you look at the R code for <em>lapply</em> (<em>sapply</em> just calls <em>lapply</em>) that it calls directly out to C code, so the for loop is executed in compiled code.</p>
+<p>You&#39;ll notice if you look at the R code for <em>lapply</em> (<em>sapply</em> just calls <em>lapply</em>) that it calls directly out to C code, so the for loop is executed in compiled code. However, the code being executed at each iteration is still R code, so there is still all the overhead of the R interpreter. </p>
 
 <pre><code class="r">print(lapply)
 </code></pre>
@@ -873,14 +893,16 @@ replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replication
 ##         X &lt;- as.list(X)
 ##     .Internal(lapply(X, FUN))
 ## }
-## &lt;bytecode: 0x55ebdb955820&gt;
+## &lt;bytecode: 0x5646de5809b0&gt;
 ## &lt;environment: namespace:base&gt;
 </code></pre>
 
 <h2>4.4) Matrix algebra efficiency</h2>
 
 <p>Often calculations that are not explicitly linear algebra calculations
-can be done as matrix algebra. For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it&#39;s surprising that this is faster than using R&#39;s heavily optimized <em>rowSums</em> function. It might be at least partially related to cache effects as <em>colSums</em> is more than twice as fast as <em>rowSums</em> in this case.</p>
+can be done as matrix algebra. If our R installation has a fast (and possibly parallelized) BLAS, this allows our calculation to take advantage of it.</p>
+
+<p>For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it&#39;s surprising that this is faster than using R&#39;s heavily optimized <em>rowSums</em> function. </p>
 
 <pre><code class="r">mat &lt;- matrix(rnorm(500*500), 500)
 benchmark(apply(mat, 1, sum),
@@ -890,9 +912,9 @@ benchmark(apply(mat, 1, sum),
 </code></pre>
 
 <pre><code>##                        test elapsed replications
-## 1        apply(mat, 1, sum)   0.032           10
-## 2 mat %*% rep(1, ncol(mat))   0.002           10
-## 3              rowSums(mat)   0.005           10
+## 1        apply(mat, 1, sum)   0.033           10
+## 2 mat %*% rep(1, ncol(mat))   0.003           10
+## 3              rowSums(mat)   0.006           10
 </code></pre>
 
 <p>On the other hand, big matrix operations can be slow. <strong>Challenge</strong>: Suppose you
@@ -903,6 +925,8 @@ by another matrix that contains 0s, 1s, and -1s in appropriate places.
  Here it turns out that the
 <em>for</em> loop is much faster than matrix multiplication. However,
 there is a way to do it faster as matrix direct subtraction. </p>
+
+<h3>Order of operations and efficiency</h3>
 
 <p>When doing matrix algebra, the order in which you do operations can
 be critical for efficiency. How should I order the following calculation?</p>
@@ -930,6 +954,8 @@ system.time(
 </code></pre>
 
 <p>Why is the second order much faster?</p>
+
+<h3>Avoiding unnecessary operations</h3>
 
 <p>We can use the matrix direct product (i.e., <code>A*B</code>) to do
 some manipulations much more quickly than using matrix multiplication.
@@ -962,13 +988,13 @@ such as C and Fortran packages.</p>
 <h2>4.5) Fast mapping/lookup tables</h2>
 
 <p>Sometimes you need to map between two vectors. E.g., 
-\(y_{ij}\sim\mathcal{N}(\mu_{j},\sigma^{2})\)
-is a basic ANOVA type structure, where multiple observations in group \(j\) 
-are associated with a common mean, \(\mu_j\). </p>
+\(y_{i}\sim\mathcal{N}(\mu_{j[i]},\sigma^{2})\)
+is a basic ANOVA type structure, where multiple observations
+are associated with a common mean, \(\mu_j\), via the <code>j[i]</code> mapping. </p>
 
 <p>How can we quickly look up the mean associated with each observation?
 A good strategy is to create a vector, <em>grp</em>, that gives a numeric
-mapping of the observations to their cluster. Then you can access
+mapping of the observations to their cluster, playing the role of <code>j[i]</code> above. Then you can access
 the \(\mu\) value relevant for each observation as: <code>mus[grp]</code>. This requires
 that <em>grp</em> correctly map to the right elements of <em>mus</em>.</p>
 
@@ -983,7 +1009,7 @@ info &lt;- data.frame(
     numGrade = c(95, 85, 75),
     fail = c(FALSE, FALSE, TRUE) )
 grp &lt;- match(df$clusterLabel, info$grade) 
-df$numGrade = info$numGrade[grp]
+df$numGrade &lt;- info$numGrade[grp]
 df
 </code></pre>
 
@@ -995,17 +1021,26 @@ df
 ## 5  5            C       75
 </code></pre>
 
-<p>R allows you to look up elements of vector by name.
-For example:</p>
+<h3>Lookup by name versus index</h3>
 
-<pre><code class="r">vals &lt;- rnorm(10)
-names(vals) &lt;- letters[1:10]
-select &lt;- c(&quot;h&quot;, &quot;h&quot;, &quot;a&quot;, &quot;c&quot;)
-vals[select]
+<p>In the example above we looked up the <code>mu</code> values based on <code>grp</code>, which supplies the needed indexes as numeric indexes.</p>
+
+<p>R also allows you to look up elements of vector by name, as illustrated here by rearranging the code above a bit:</p>
+
+<pre><code class="r">info2 &lt;- info$numGrade
+names(info2) &lt;- info$grade
+info2
 </code></pre>
 
-<pre><code>##          h          h          a          c 
-##  0.2511293  0.2511293 -0.4466439  0.2898673
+<pre><code>##  A  B  C 
+## 95 85 75
+</code></pre>
+
+<pre><code class="r">info2[df$clusterLabel]
+</code></pre>
+
+<pre><code>##  C  B  B  A  C 
+## 75 85 85 95 75
 </code></pre>
 
 <p>You can do similar things in terms of looking up by name with dimension
@@ -1020,22 +1055,42 @@ indices of the elements.  </p>
 <pre><code class="r">n &lt;- 1000
 x &lt;- 1:n
 xL &lt;- as.list(x)
-nms &lt;- as.character(x)
+nms &lt;- paste0(&quot;var&quot;, as.character(x))
 names(x) &lt;- nms
 names(xL) &lt;- nms
-microbenchmark(
+x[1:3]
+</code></pre>
+
+<pre><code>## var1 var2 var3 
+##    1    2    3
+</code></pre>
+
+<pre><code class="r">xL[1:3]
+</code></pre>
+
+<pre><code>## $var1
+## [1] 1
+## 
+## $var2
+## [1] 2
+## 
+## $var3
+## [1] 3
+</code></pre>
+
+<pre><code class="r">microbenchmark(
     x[500],  # index lookup in vector
-    x[&quot;500&quot;], # name lookup in vector
+    x[&quot;var500&quot;], # name lookup in vector
     xL[[500]], # index lookup in list
-    xL[[&quot;500&quot;]]) # name lookup in list
+    xL[[&quot;var500&quot;]]) # name lookup in list
 </code></pre>
 
 <pre><code>## Unit: nanoseconds
-##         expr   min    lq     mean  median      uq   max neval cld
-##       x[500]   439   476   618.02   510.5   547.0  8385   100 a  
-##     x[&quot;500&quot;]  5720  5788  7163.52  5829.5  5881.0 94053   100  b 
-##    xL[[500]]   149   189   298.38   230.0   248.0  6067   100 a  
-##  xL[[&quot;500&quot;]] 11649 11727 12529.01 11769.5 11848.5 27445   100   c
+##            expr  min   lq    mean median     uq   max neval cld
+##          x[500]  343  364  419.99  375.5  409.5  3035   100 a  
+##     x[&quot;var500&quot;] 2655 2683 2954.80 2698.5 2750.0 17271   100  b 
+##       xL[[500]]  144  167  196.92  188.0  218.0   529   100 a  
+##  xL[[&quot;var500&quot;]] 3696 3722 4074.27 3758.5 3788.5 11907   100   c
 </code></pre>
 
 <p>Lookup by name is slow because R needs to scan through the objects
@@ -1044,17 +1099,10 @@ In contrast, to look up by index, R can just go directly to the position of inte
 
 <p>Side note: there is a lot of variability across the 100 replications shown above. This might have to do with cache effects (see next section).</p>
 
-<p>In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code. </p>
+<p>In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code, because the global environment, function frames, and package namespaces are all environments. </p>
 
 <pre><code class="r">xEnv &lt;- as.environment(xL)  # convert from a named list
-xEnv$&quot;500&quot;  
-</code></pre>
-
-<pre><code>## [1] 500
-</code></pre>
-
-<pre><code class="r"># I need quotes above because numeric; otherwise xEnv$nameOfObject is fine
-xEnv[[&quot;500&quot;]]
+xEnv$var500  
 </code></pre>
 
 <pre><code>## [1] 500
@@ -1063,16 +1111,17 @@ xEnv[[&quot;500&quot;]]
 <pre><code class="r">microbenchmark(
   x[500],
   xL[[500]],
-  xEnv[[&quot;500&quot;]],
-  xEnv$&quot;500&quot;)
+  xEnv[[&quot;var500&quot;]],
+  xEnv$var500
+)
 </code></pre>
 
 <pre><code>## Unit: nanoseconds
-##           expr min    lq   mean median    uq   max neval cld
-##         x[500] 466 520.5 687.27  540.5 563.0 13909   100   b
-##      xL[[500]] 168 190.5 252.75  218.5 245.0  3511   100  a 
-##  xEnv[[&quot;500&quot;]] 159 170.5 228.14  195.5 219.5  3054   100  a 
-##     xEnv$&quot;500&quot; 199 222.5 297.29  277.0 298.0  2763   100  a
+##              expr min    lq   mean median    uq  max neval cld
+##            x[500] 356 367.0 461.30  385.5 435.5 5604   100   b
+##         xL[[500]] 155 170.5 226.74  197.0 220.0 2599   100  a 
+##  xEnv[[&quot;var500&quot;]] 138 153.0 204.92  178.0 191.0 2490   100  a 
+##       xEnv$var500 201 218.0 263.41  232.5 259.5 1661   100  a
 </code></pre>
 
 <h2>4.6 Cache-aware programming</h2>
@@ -1087,37 +1136,52 @@ xEnv[[&quot;500&quot;]]
 
 <p>If you know the size of the cache, you can try to design your code so that in a given part of your code you access data structures that will fit in the cache. This sort of thing is generally more relevant if you&#39;re coding in a language like C. But it can matter sometimes in R too. Here&#39;s an example:</p>
 
-<pre><code class="r">nr = 800000
-nc = 100
+<pre><code class="r">nr &lt;- 800000
+nc &lt;- 100
 ## large matrix that won&#39;t fit in cache
-A = matrix(rnorm(nr * nc), nrow = nr)
-system.time(apply(A, 2, mean))  ## operate by column
+A &lt;- matrix(rnorm(nr * nc), nrow = nr)
+tA &lt;- t(A)
+benchmark(
+    apply(A, 2, mean),   ## operate by column
+    apply(tA, 1, mean),  ## exact same calculation, but by row
+    replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
-<pre><code>##    user  system elapsed 
-##   0.833   0.140   0.974
+<pre><code>##                 test elapsed replications
+## 1  apply(A, 2, mean)  10.675           10
+## 2 apply(tA, 1, mean)  21.352           10
 </code></pre>
 
-<pre><code class="r">A = t(A)
-system.time(apply(A, 1, mean))  ## same calculation, but by row
-</code></pre>
+<p>Now let&#39;s compare things when we make the matrix small enough that it fits in the cache. In this case it fits into the largest (L3) cache but not the smaller (L2 and L1) caches, and we see that the difference in speed disappears.</p>
 
-<pre><code>##    user  system elapsed 
-##   1.766   0.228   1.994
-</code></pre>
-
-<pre><code class="r">nr = 800
-nc = 100
+<pre><code class="r">nr &lt;- 800
+nc &lt;- 100
 ## small matrix that should fit in cache
-A = matrix(rnorm(nr * nc), nrow = nr)
-tA = t(A)
+A &lt;- matrix(rnorm(nr * nc), nrow = nr)
+## Yep, the size is less than the L3 cache:
+object.size(A)
+</code></pre>
+
+<pre><code>## 640216 bytes
+</code></pre>
+
+<pre><code class="r">memuse::Sys.cachesize()
+</code></pre>
+
+<pre><code>## L1I:   32.000 KiB 
+## L1D:   32.000 KiB 
+## L2:   256.000 KiB 
+## L3:     8.000 MiB
+</code></pre>
+
+<pre><code class="r">tA &lt;- t(A)
 benchmark(apply(A, 2, mean),  ## by column
           apply(tA, 1, mean),  ## by row
   replications = 10, columns=c(&#39;test&#39;, &#39;elapsed&#39;, &#39;replications&#39;))
 </code></pre>
 
 <pre><code>##                 test elapsed replications
-## 1  apply(A, 2, mean)   0.012           10
+## 1  apply(A, 2, mean)   0.013           10
 ## 2 apply(tA, 1, mean)   0.012           10
 </code></pre>
 

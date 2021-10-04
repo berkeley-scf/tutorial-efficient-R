@@ -71,7 +71,7 @@ To use an optimized BLAS, talk to your systems adminstrator, see [Section A.3 of
 
 Any calls to BLAS or to the LAPACK libraries that use BLAS to do higher-level linear algebra calculations will be nearly as fast as if you used C/C++ or Matlab, because R is using the compiled code from the BLAS and LAPACK libraries. 
 
-In addition, the BLAS libraries above are threaded -- they can use more than one core, and often will do so by default. More details in the tutorial on parallel programming. 
+In addition, the BLAS libraries above are threaded -- they can use more than one core, and often will do so by default. More details in the [SCF tutorial on parallel programming](https://github.com/berkeley-scf/tutorial-parallel-basics). 
 
  
 # 3) Tools for assessing efficiency
@@ -97,6 +97,8 @@ package. Of course one would generally only care about accurately timing quick c
 
 ```{r, microbenchmark2}
 ```
+
+**Challenge**: What is inefficient about the manual approach above?
 
 An alternative that also automates timings and comparisons is the *benchmark* function from  the *rbenchmark* package, but there's not really a reason to use it when *microbenchmark* is available.
 
@@ -129,7 +131,7 @@ Let's run the function with profiling turned on.
 
 The first call to *hotPaths* shows the percentage of time spent in each call, while the second shows the actual time.
 
-Note the nestedness of the results. For example, essentially all the time spent in *solve* is actually spent in *solve.default*. In this case *solve* is just a generic method that immediately calls *solve.default*.
+Note the nestedness of the results. For example, essentially all the time spent in *solve* is actually spent in *solve.default*. In this case *solve* is just an S3 generic method that immediately calls the specific method *solve.default*.
 
 We can see that a lot of time is spent in doing the two crossproducts. So let's try using *crossprod* to make those steps faster.
 
@@ -137,7 +139,7 @@ We can see that a lot of time is spent in doing the two crossproducts. So let's 
 ```{r, Rprof-run2}
 ```
 
-First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using *solve*. (There's not much we can do to speed up the *crossprod* operations.) It's well known that one should avoid computing the explicit inverse if one can avoid it. Here's a faster version that avoids it.
+First note that this version takes about half the time of the previous one. Second note that a fair amount of time is spent computing the explicit matrix inverse using *solve*. (There's not much we can do to speed up the *crossprod* operations, apart from making sure we are using a fast BLAS and potentially a parallelized BLAS.) It's well known that one should avoid computing the explicit inverse if one can avoid it. Here's a faster version that avoids it.
 
 ```{r, Rprof-run3}
 ```
@@ -175,7 +177,7 @@ like this using loops because we would in practice use vectorized calculations.
 
 It's not necessary to use *as.numeric* above though it saves
 a bit of time. **Challenge**: figure out why I have `as.numeric(NA)`
-and not just `NA`.
+and not just `NA`. Hint: what is the type of `NA`?
 
 In some cases, we can speed up the initialization by initializing a vector of length one and then changing its length and/or dimension, although in  many practical
 circumstances this would be overkill.
@@ -233,6 +235,7 @@ Many R functions allow you to pass in vectors, and operate on those
 vectors in vectorized fashion. So before writing a for loop, look
 at the help information on the relevant function(s) to see if they
 operate in a vectorized fashion. Functions might take vectors for one or more of their arguments.
+Here we see that `nchar` is vectorized and that various arguments to `substring` can be vectors.
 
 ```{r, vectorized}
 ```
@@ -277,8 +280,11 @@ then compare the more efficient code to make sure the results are the same. It's
 
 ## 4.3) Using *apply* and specialized functions
 
-Another core efficiency strategy is to use the *apply* functionality.
-Even better than *apply* for calculating sums or means of columns
+Historically, another core efficiency strategy in R has been to use the *apply* functionality (e.g., `apply`, `sapply`, `lapply`, `mapply`, etc.).
+
+### Some faster alternatives to `apply`
+
+Note that even better than *apply* for calculating sums or means of columns
 or rows (it also can be used for arrays) is {row,col}{Sums,Means}.
 
 ```{r, apply}
@@ -300,9 +306,10 @@ need to transpose twice.
 
 ### Are *apply*, *lapply*, *sapply*, etc. faster than loops?
 
-Using *apply* with matrices and versions of *apply* with lists may or may not be faster
-than looping but generally produces cleaner code. Whether looping
-is slower will depend on whether a substantial part of the work is
+Using *apply* with matrices and versions of *apply* with lists or vectors (e.g., `lapply`, `sapply`) may or may not be faster
+than looping but generally produces cleaner code.
+
+Whether looping and use of apply variants is slow will depend in part on whether a substantial part of the work is
 in the overhead involved in the looping or in the time required by the function
 evaluation on each of the elements. If you're worried about speed,
 it's a good idea to benchmark the *apply* variant against looping.
@@ -314,13 +321,13 @@ than writing a loop.
 ```{r, apply-vs-for}
 ```
 
-I believe that in old version of the R the *sapply* in the next example was faster than in R, but that doesn't seem to be the case currently.
+And here's an example, where (unlike the previous example) the core computation is very fast, so we might expect the overhead of looping to be important. I believe that in old versions of R the *sapply* in this  example was faster than looping in R, but that doesn't seem to be the case currently.
 I think this may be related to various somewhat recent improvements in R's handling of loops, possibly including the use of the byte compiler.
 
 ```{r, apply-vs-for-part2}
 ```
 
-You'll notice if you look at the R code for *lapply* (*sapply* just calls *lapply*) that it calls directly out to C code, so the for loop is executed in compiled code.
+You'll notice if you look at the R code for *lapply* (*sapply* just calls *lapply*) that it calls directly out to C code, so the for loop is executed in compiled code. However, the code being executed at each iteration is still R code, so there is still all the overhead of the R interpreter. 
 
 ```{r, lapply-callout}
 print(lapply)
@@ -329,7 +336,9 @@ print(lapply)
 ## 4.4) Matrix algebra efficiency
 
 Often calculations that are not explicitly linear algebra calculations
-can be done as matrix algebra. For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it's surprising that this is faster than using R's heavily optimized *rowSums* function. It might be at least partially related to cache effects as *colSums* is more than twice as fast as *rowSums* in this case.
+can be done as matrix algebra. If our R installation has a fast (and possibly parallelized) BLAS, this allows our calculation to take advantage of it.
+
+For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it's surprising that this is faster than using R's heavily optimized *rowSums* function. 
 
 ```{r, matrix-calc}
 ```
@@ -343,6 +352,8 @@ by another matrix that contains 0s, 1s, and -1s in appropriate places.
 *for* loop is much faster than matrix multiplication. However,
 there is a way to do it faster as matrix direct subtraction. 
 
+### Order of operations and efficiency
+
 When doing matrix algebra, the order in which you do operations can
 be critical for efficiency. How should I order the following calculation?
 
@@ -350,6 +361,8 @@ be critical for efficiency. How should I order the following calculation?
 ```
 
 Why is the second order much faster?
+
+### Avoiding unnecessary operations 
 
 We can use the matrix direct product (i.e., `A*B`) to do
 some manipulations much more quickly than using matrix multiplication.
@@ -375,13 +388,13 @@ such as C and Fortran packages.
 ## 4.5) Fast mapping/lookup tables
 
 Sometimes you need to map between two vectors. E.g., 
-$y_{ij}\sim\mathcal{N}(\mu_{j},\sigma^{2})$
-is a basic ANOVA type structure, where multiple observations in group $j$ 
-are associated with a common mean, $\mu_j$. 
+$y_{i}\sim\mathcal{N}(\mu_{j[i]},\sigma^{2})$
+is a basic ANOVA type structure, where multiple observations
+are associated with a common mean, $\mu_j$, via the `j[i]` mapping. 
 
 How can we quickly look up the mean associated with each observation?
 A good strategy is to create a vector, *grp*, that gives a numeric
-mapping of the observations to their cluster. Then you can access
+mapping of the observations to their cluster, playing the role of `j[i]` above. Then you can access
 the $\mu$ value relevant for each observation as: `mus[grp]`. This requires
 that *grp* correctly map to the right elements of *mus*.
 
@@ -391,8 +404,11 @@ Here's how you would create an index vector, *grp*, if it doesn't already exist.
 ```{r, match-lookup}
 ```
 
-R allows you to look up elements of vector by name.
-For example:
+### Lookup by name versus index
+
+In the example above we looked up the `mu` values based on `grp`, which supplies the needed indexes as numeric indexes.
+
+R also allows you to look up elements of vector by name, as illustrated here by rearranging the code above a bit:
 
 ```{r, name-lookup}
 ```
@@ -415,7 +431,7 @@ In contrast, to look up by index, R can just go directly to the position of inte
 
 Side note: there is a lot of variability across the 100 replications shown above. This might have to do with cache effects (see next section).
 
-In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code. 
+In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code, because the global environment, function frames, and package namespaces are all environments. 
 
 ```{r, env-lookup, cache=TRUE}
 ```
@@ -434,5 +450,10 @@ There's a nice example of the importance of the cache at [the bottom of this blo
 If you know the size of the cache, you can try to design your code so that in a given part of your code you access data structures that will fit in the cache. This sort of thing is generally more relevant if you're coding in a language like C. But it can matter sometimes in R too. Here's an example:
 
 ```{r, cache-aware}
+```
+
+Now let's compare things when we make the matrix small enough that it fits in the cache. In this case it fits into the largest (L3) cache but not the smaller (L2 and L1) caches, and we see that the difference in speed disappears.
+
+```{r, cache-aware2}
 ```
 
