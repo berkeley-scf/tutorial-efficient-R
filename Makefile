@@ -8,3 +8,6 @@ timing.md: timing.Rmd
 efficiency.md: efficiency.Rmd
 	quarto render efficiency.Rmd --to markdown 
 
+tmp.md: tmp.Rmd
+	quarto render tmp.Rmd --to markdown 
+
