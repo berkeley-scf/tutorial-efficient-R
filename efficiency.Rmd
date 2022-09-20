@@ -141,7 +141,7 @@ substring(address[1], startIndices, startIndices + 1)
 a test of independence in a contingency table:
 
 \[
-\chi^{2}=\sum_{i}\sum_{j}\frac{(y_{ij}-e_{ij})^{2}}{e_{ij}},\,\,\,\, e_{ij}=\frac{y_{i\cdot}y_{\cdot j}}{y_{\cdot\cdot}}
+\chi^{2}=\sum_{i}\sum_{j} ( (y_{ij}-e_{ij})^{2} ) / e_{ij},\,\,\,\, e_{ij}= ( y_{i\cdot}y_{\cdot j} ) / y_{\cdot\cdot}
 \]
 
 where $y_{i\cdot}=\sum_{j}y_{ij}$ and $y_{\cdot j} = \sum_{i} y_{ij}$. Write this in a vectorized way
@@ -165,13 +165,14 @@ benchmark(
 
 
 Additional tips:
- - If you do need to loop over dimensions of a matrix or array, if possible
+
+  - If you do need to loop over dimensions of a matrix or array, if possible
 loop over the smallest dimension and use the vectorized calculation
 on the larger dimension(s). For example if you have a 10000 by 10 matrix, try to set
 up your problem so you can loop over the 10 columns rather than the 10000 rows.
- - In general, looping over columns is likely to be faster than looping over rows
+  - In general, looping over columns is likely to be faster than looping over rows
 given R's column-major ordering (matrices are stored in memory as a long array in which values in a column are adjacent to each other) (see more in Section 4.6 on the cache).
- - You can use direct arithmetic operations to add/subtract/multiply/divide
+  - You can use direct arithmetic operations to add/subtract/multiply/divide
 a vector by each column of a matrix, e.g. `A*b` does element-wise multiplication of
 each column of *A* by a vector *b*. If you need to operate
 by row, you can do it by transposing the matrix. 
@@ -190,7 +191,7 @@ Historically, another core efficiency strategy in R has been to use the *apply* 
 ### Some faster alternatives to `apply`
 
 Note that even better than *apply* for calculating sums or means of columns
-or rows (it also can be used for arrays) is {row,col}{Sums,Means}.
+or rows (it also can be used for arrays) is `rowSums`,`colSums`,`rowMeans`, and `colMeans`.
 
 ```{r, apply, cache=TRUE}
 n <- 3000; x <- matrix(rnorm(n * n), nr = n)
@@ -296,14 +297,9 @@ benchmark(apply(mat, 1, sum),
 	replications = 10, columns=c('test', 'elapsed', 'replications'))
 ```
 
-On the other hand, big matrix operations can be slow. **Challenge**: Suppose you
-want a new matrix that computes the differences between successive
-columns of a matrix of arbitrary size. How would you do this as matrix
-algebra operations? It's possible to write it as multiplying the matrix
-by another matrix that contains 0s, 1s, and -1s in appropriate places.
- Here it turns out that the
-*for* loop is much faster than matrix multiplication. However,
-there is a way to do it faster as matrix direct subtraction. 
+On the other hand, big matrix operations can be slow.
+
+> **Challenge**: Suppose you want a new matrix that computes the differences between successive columns of a matrix of arbitrary size. How would you do this as matrix algebra operations? It's possible to write it as multiplying the matrix by another matrix that contains 0s, 1s, and -1s in appropriate places.  Here it turns out that the *for* loop is much faster than matrix multiplication. However, there is a way to do it faster as matrix direct subtraction. 
 
 ### Order of operations and efficiency
 
@@ -330,9 +326,9 @@ Why is the second order much faster?
 We can use the matrix direct product (i.e., `A*B`) to do
 some manipulations much more quickly than using matrix multiplication.
 **Challenge**: How can I use the direct product to find the trace
-of a matrix, $XY$? 
+of a matrix, `XY`? 
 
-Finally, when working with diagonal matrices, you can generally get much faster results by being smart. The following operations: $X+D$, $DX$, $XD$
+Finally, when working with diagonal matrices, you can generally get much faster results by being smart. The following operations: `X+D`, `DX`, `XD`
 are mathematically the sum of two matrices and products of two matrices.
 But we can do the computation without using two full matrices.
 **Challenge**: How?
@@ -365,10 +361,10 @@ is a basic ANOVA type structure, where multiple observations
 are associated with a common mean, $\mu_j$, via the `j[i]` mapping. 
 
 How can we quickly look up the mean associated with each observation?
-A good strategy is to create a vector, *grp*, that gives a numeric
+A good strategy is to create a vector, `grp`, that gives a numeric
 mapping of the observations to their cluster, playing the role of `j[i]` above. Then you can access
 the $\mu$ value relevant for each observation as: `mus[grp]`. This requires
-that *grp* correctly map to the right elements of *mus*.
+that `grp` correctly map to the right elements of `mus`.
 
 The *match* function can help in creating numeric indices that can then be used for lookups. 
 Here's how you would create an index vector, *grp*, if it doesn't already exist.

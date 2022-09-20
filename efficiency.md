@@ -71,8 +71,8 @@ replications = 10, columns=c('test', 'elapsed', 'replications'))
     ## 2 {\n    x <- as.numeric(NA)\n    length(x) <- nr * nc\n    dim(x) <- c(nr, nc)\n}
     ## 1                                              x <- matrix(as.numeric(NA), nr, nc)
     ##   elapsed replications
-    ## 2   0.039           10
-    ## 1   0.147           10
+    ## 2   0.040           10
+    ## 1   0.142           10
 
 For lists, we can do this
 
@@ -160,7 +160,7 @@ mean.default
     ##     }
     ##     .Internal(mean(x))
     ## }
-    ## <bytecode: 0x55695fd95fd8>
+    ## <bytecode: 0x55e83f5050b8>
     ## <environment: namespace:base>
 
 ``` r
@@ -175,7 +175,7 @@ chol.default
     ##         stop("complex matrices not permitted at present")
     ##     .Internal(La_chol(as.matrix(x), pivot, tol))
     ## }
-    ## <bytecode: 0x55695fc7eb28>
+    ## <bytecode: 0x55e83f3edc08>
     ## <environment: namespace:base>
 
 Many R functions allow you to pass in vectors, and operate on those
@@ -212,9 +212,7 @@ substring(address[1], startIndices, startIndices + 1)
 **Challenge**: Consider the chi-squared statistic involved in a test of
 independence in a contingency table:
 
-$$
-\\chi^{2}=\\sum\_{i}\\sum\_{j}\\frac{(y\_{ij}-e\_{ij})^{2}}{e\_{ij}},\\,\\,\\,\\, e\_{ij}=\\frac{y\_{i\\cdot}y\_{\\cdot j}}{y\_{\\cdot\\cdot}}
-$$
+*χ*<sup>2</sup> = ∑<sub>*i*</sub>∑<sub>*j*</sub>((*y*<sub>*i**j*</sub>−*e*<sub>*i**j*</sub>)<sup>2</sup>)/*e*<sub>*i**j*</sub>,    *e*<sub>*i**j*</sub> = (*y*<sub>*i*⋅</sub>*y*<sub>⋅*j*</sub>)/*y*<sub>⋅⋅</sub>
 
 where *y*<sub>*i*⋅</sub> = ∑<sub>*j*</sub>*y*<sub>*i**j*</sub> and
 *y*<sub>⋅*j*</sub> = ∑<sub>*i*</sub>*y*<sub>*i**j*</sub>. Write this in
@@ -240,19 +238,22 @@ benchmark(
     ## 1                 truncx <- ifelse(x > 0, x, 0)   0.240           10
     ## 3                         truncx <- x * (x > 0)   0.042           10
 
-Additional tips: - If you do need to loop over dimensions of a matrix or
-array, if possible loop over the smallest dimension and use the
-vectorized calculation on the larger dimension(s). For example if you
-have a 10000 by 10 matrix, try to set up your problem so you can loop
-over the 10 columns rather than the 10000 rows. - In general, looping
-over columns is likely to be faster than looping over rows given R’s
-column-major ordering (matrices are stored in memory as a long array in
-which values in a column are adjacent to each other) (see more in
-Section 4.6 on the cache). - You can use direct arithmetic operations to
-add/subtract/multiply/divide a vector by each column of a matrix,
-e.g. `A*b` does element-wise multiplication of each column of *A* by a
-vector *b*. If you need to operate by row, you can do it by transposing
-the matrix.
+Additional tips:
+
+-   If you do need to loop over dimensions of a matrix or array, if
+    possible loop over the smallest dimension and use the vectorized
+    calculation on the larger dimension(s). For example if you have a
+    10000 by 10 matrix, try to set up your problem so you can loop over
+    the 10 columns rather than the 10000 rows.
+-   In general, looping over columns is likely to be faster than looping
+    over rows given R’s column-major ordering (matrices are stored in
+    memory as a long array in which values in a column are adjacent to
+    each other) (see more in Section 4.6 on the cache).
+-   You can use direct arithmetic operations to
+    add/subtract/multiply/divide a vector by each column of a matrix,
+    e.g. `A*b` does element-wise multiplication of each column of *A* by
+    a vector *b*. If you need to operate by row, you can do it by
+    transposing the matrix.
 
 Caution: relying on R’s recycling rule in the context of vectorized
 operations, such as is done when direct-multiplying a matrix by a vector
@@ -272,7 +273,7 @@ etc.).
 
 Note that even better than *apply* for calculating sums or means of
 columns or rows (it also can be used for arrays) is
-{row,col}{Sums,Means}.
+`rowSums`,`colSums`,`rowMeans`, and `colMeans`.
 
 ``` r
 n <- 3000; x <- matrix(rnorm(n * n), nr = n)
@@ -294,7 +295,7 @@ system.time(out <- sweep(x, 2, STATS = colMeans(x), FUN = "-"))
 ```
 
     ##    user  system elapsed 
-    ##   0.657   0.113   0.771
+    ##   0.661   0.101   0.763
 
 Here’s a trick for doing the sweep based on vectorized calculations,
 remembering that if we subtract a vector from a matrix, it subtracts
@@ -306,7 +307,7 @@ system.time(out2 <- t(t(x) - colMeans(x)))
 ```
 
     ##    user  system elapsed 
-    ##   0.203   0.028   0.232
+    ##   0.209   0.028   0.236
 
 ``` r
 identical(out, out2)
@@ -342,7 +343,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.102   0.009   0.110
+    ##   0.083   0.027   0.111
 
 ``` r
 system.time({
@@ -354,7 +355,7 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##   0.078   0.000   0.077
+    ##   0.075   0.000   0.076
 
 And here’s an example, where (unlike the previous example) the core
 computation is very fast, so we might expect the overhead of looping to
@@ -410,7 +411,7 @@ print(lapply)
     ##         X <- as.list(X)
     ##     .Internal(lapply(X, FUN))
     ## }
-    ## <bytecode: 0x55695dc505b8>
+    ## <bytecode: 0x55e83d3bf5b8>
     ## <environment: namespace:base>
 
 ## 4. Matrix algebra efficiency
@@ -434,18 +435,19 @@ benchmark(apply(mat, 1, sum),
 ```
 
     ##                        test elapsed replications
-    ## 1        apply(mat, 1, sum)   0.033           10
-    ## 2 mat %*% rep(1, ncol(mat))   0.002           10
-    ## 3              rowSums(mat)   0.010           10
+    ## 1        apply(mat, 1, sum)   0.032           10
+    ## 2 mat %*% rep(1, ncol(mat))   0.003           10
+    ## 3              rowSums(mat)   0.011           10
 
-On the other hand, big matrix operations can be slow. **Challenge**:
-Suppose you want a new matrix that computes the differences between
-successive columns of a matrix of arbitrary size. How would you do this
-as matrix algebra operations? It’s possible to write it as multiplying
-the matrix by another matrix that contains 0s, 1s, and -1s in
-appropriate places. Here it turns out that the *for* loop is much faster
-than matrix multiplication. However, there is a way to do it faster as
-matrix direct subtraction.
+On the other hand, big matrix operations can be slow.
+
+> **Challenge**: Suppose you want a new matrix that computes the
+> differences between successive columns of a matrix of arbitrary size.
+> How would you do this as matrix algebra operations? It’s possible to
+> write it as multiplying the matrix by another matrix that contains 0s,
+> 1s, and -1s in appropriate places. Here it turns out that the *for*
+> loop is much faster than matrix multiplication. However, there is a
+> way to do it faster as matrix direct subtraction.
 
 ### Order of operations and efficiency
 
@@ -481,13 +483,13 @@ Why is the second order much faster?
 We can use the matrix direct product (i.e., `A*B`) to do some
 manipulations much more quickly than using matrix multiplication.
 **Challenge**: How can I use the direct product to find the trace of a
-matrix, *X**Y*?
+matrix, `XY`?
 
 Finally, when working with diagonal matrices, you can generally get much
-faster results by being smart. The following operations: *X* + *D*,
-*D**X*, *X**D* are mathematically the sum of two matrices and products
-of two matrices. But we can do the computation without using two full
-matrices. **Challenge**: How?
+faster results by being smart. The following operations: `X+D`, `DX`,
+`XD` are mathematically the sum of two matrices and products of two
+matrices. But we can do the computation without using two full matrices.
+**Challenge**: How?
 
 ``` r
 n <- 1000
@@ -517,11 +519,11 @@ basic ANOVA type structure, where multiple observations are associated
 with a common mean, *μ*<sub>*j*</sub>, via the `j[i]` mapping.
 
 How can we quickly look up the mean associated with each observation? A
-good strategy is to create a vector, *grp*, that gives a numeric mapping
+good strategy is to create a vector, `grp`, that gives a numeric mapping
 of the observations to their cluster, playing the role of `j[i]` above.
 Then you can access the *μ* value relevant for each observation as:
-`mus[grp]`. This requires that *grp* correctly map to the right elements
-of *mus*.
+`mus[grp]`. This requires that `grp` correctly map to the right elements
+of `mus`.
 
 The *match* function can help in creating numeric indices that can then
 be used for lookups. Here’s how you would create an index vector, *grp*,
@@ -618,10 +620,10 @@ microbenchmark(
 
     ## Unit: nanoseconds
     ##            expr  min     lq    mean median     uq   max neval cld
-    ##          x[500]  266  285.0  320.07  296.0  340.5   556   100 a  
-    ##     x["var500"] 2148 2201.0 2355.49 2217.5 2246.0 14198   100  b 
-    ##       xL[[500]]  122  145.5  180.06  170.5  184.0   529   100 a  
-    ##  xL[["var500"]] 2895 2936.5 3068.46 2952.0 2966.0  8268   100   c
+    ##          x[500]  259  285.0  457.88  300.5  316.5 13615   100 a  
+    ##     x["var500"] 2141 2192.5 2602.40 2219.0 2254.0 14882   100  b 
+    ##       xL[[500]]  126  146.0  257.64  162.5  173.0  8998   100 a  
+    ##  xL[["var500"]] 3273 3316.5 3658.21 3336.5 3357.5 21499   100   c
 
 Lookup by name is slow because R needs to scan through the objects one
 by one until it finds the one with the name it is looking for. In
