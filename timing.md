@@ -21,14 +21,14 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##   0.214   0.029   0.243
+    ##   0.205   0.039   0.245
 
 ``` r
 system.time(rowMeans(x))
 ```
 
     ##    user  system elapsed 
-    ##   0.021   0.000   0.022
+    ##   0.023   0.000   0.023
 
 In general, *user* time gives the CPU time spent by R and *system* time
 gives the CPU time spent by the kernel (the operating system) on behalf
@@ -53,12 +53,16 @@ microbenchmark(
 
     ## Unit: nanoseconds
     ##           expr  min     lq    mean median     uq   max neval cld
-    ##       df[2, 1] 7848 8472.0 9297.78 8821.0 9194.0 39797   100   b
-    ##     df$vals[2]  599  787.5 1009.24  896.5 1111.5  7960   100  a 
-    ##  df[2, "vals"] 7793 8532.5 8823.03 8773.0 9083.5 10513   100   b
+    ##       df[2, 1] 7808 8629.0 8953.87   8891 9192.5 10576   100   b
+    ##     df$vals[2]  587  824.0 1127.77    908 1078.5 14589   100  a 
+    ##  df[2, "vals"] 8061 8552.5 9462.02   8877 9260.5 47469   100   b
+
+**Challenge**: Think about what order of operations in the first and
+third approaches above might lead to the timing result seen above.
 
 *microbenchmark* is also a good way to compare slower calculations,
-e.g., doing a crossproduct via *crossproduct()* compared to “manually”:
+e.g., doing a crossproduct via *crossproduct()* compared to “manually”
+via transpose and matrix multiply:
 
 ``` r
 library(microbenchmark)
@@ -72,8 +76,8 @@ microbenchmark(
 
     ## Unit: milliseconds
     ##          expr      min       lq     mean   median       uq      max neval cld
-    ##    t(x) %*% x 29.86091 31.18653 36.36228 35.50446 39.57236 47.06392    10   b
-    ##  crossprod(x) 13.23457 14.89923 21.70717 19.98037 25.43809 38.28577    10  a
+    ##    t(x) %*% x 30.03160 30.67943 36.31298 31.19266 41.69366 59.66279    10   b
+    ##  crossprod(x) 13.99203 14.10572 14.91910 14.25554 14.56747 17.82640    10  a
 
 **Challenge**: What is inefficient about the manual approach above?
 
@@ -116,7 +120,7 @@ predictors, including a column for the intercept.
 lr_slow <- function(y, x) {
   xtx <- t(x) %*% x
   xty <- t(x) %*% y
-  inv <- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  inv <- solve(xtx)  ## explicit matrix inverse is slow and usually a bad idea numerically
   return(inv %*% xty)
 }
 ```
@@ -136,27 +140,31 @@ hotPaths(pd1)
 
     ##  path               total.pct self.pct
     ##  lr_slow            100.00     0.00   
-    ##  . %*% (<text>:2)    23.75    23.75   
-    ##  . %*% (<text>:3)     1.25     1.25   
-    ##  . solve (<text>:4)  47.50     0.00   
-    ##  . . solve.default   47.50    46.25   
-    ##  . . . diag           1.25     1.25   
-    ##  . t (<text>:3)      27.50     0.00   
-    ##  . . t.default       27.50    27.50
+    ##  . %*% (<text>:2)    32.73    32.73   
+    ##  . %*% (<text>:3)     1.82     1.82   
+    ##  . solve (<text>:4)  29.09     0.00   
+    ##  . . solve.default   29.09    25.45   
+    ##  . . . diag           3.64     3.64   
+    ##  . t (<text>:2)       1.82     0.00   
+    ##  . . t.default        1.82     1.82   
+    ##  . t (<text>:3)      34.55     0.00   
+    ##  . . t.default       34.55    34.55
 
 ``` r
 hotPaths(pd1, value = 'time')
 ```
 
     ##  path               total.time self.time
-    ##  lr_slow            1.60       0.00     
-    ##  . %*% (<text>:2)   0.38       0.38     
+    ##  lr_slow            1.10       0.00     
+    ##  . %*% (<text>:2)   0.36       0.36     
     ##  . %*% (<text>:3)   0.02       0.02     
-    ##  . solve (<text>:4) 0.76       0.00     
-    ##  . . solve.default  0.76       0.74     
-    ##  . . . diag         0.02       0.02     
-    ##  . t (<text>:3)     0.44       0.00     
-    ##  . . t.default      0.44       0.44
+    ##  . solve (<text>:4) 0.32       0.00     
+    ##  . . solve.default  0.32       0.28     
+    ##  . . . diag         0.04       0.04     
+    ##  . t (<text>:2)     0.02       0.00     
+    ##  . . t.default      0.02       0.02     
+    ##  . t (<text>:3)     0.38       0.00     
+    ##  . . t.default      0.38       0.38
 
 The first call to *hotPaths* shows the percentage of time spent in each
 call, while the second shows the actual time.
@@ -173,7 +181,7 @@ So let’s try using *crossprod* to make those steps faster.
 lr_medium <- function(y, x) {
   xtx <- crossprod(x)
   xty <- crossprod(x, y)
-  inv <- solve(xtx)   ## explicit matrix inverse is slow and generally a bad idea numerically
+  inv <- solve(xtx)  ## explicit matrix inverse is slow and usually a bad idea numerically
   return(inv %*% xty)
 }                   
 
@@ -183,11 +191,10 @@ hotPaths(pd2)
 
     ##  path                   total.pct self.pct
     ##  lr_medium              100.00     0.00   
-    ##  . %*% (<text>:5)         3.23     3.23   
-    ##  . crossprod (<text>:2)  45.16    45.16   
+    ##  . crossprod (<text>:2)  41.94    41.94   
     ##  . crossprod (<text>:3)   6.45     6.45   
-    ##  . solve (<text>:4)      45.16     0.00   
-    ##  . . solve.default       45.16    41.94   
+    ##  . solve (<text>:4)      51.61     0.00   
+    ##  . . solve.default       51.61    48.39   
     ##  . . . diag               3.23     3.23
 
 ``` r
@@ -196,20 +203,19 @@ hotPaths(pd2, value = 'time')
 
     ##  path                   total.time self.time
     ##  lr_medium              0.62       0.00     
-    ##  . %*% (<text>:5)       0.02       0.02     
-    ##  . crossprod (<text>:2) 0.28       0.28     
+    ##  . crossprod (<text>:2) 0.26       0.26     
     ##  . crossprod (<text>:3) 0.04       0.04     
-    ##  . solve (<text>:4)     0.28       0.00     
-    ##  . . solve.default      0.28       0.26     
+    ##  . solve (<text>:4)     0.32       0.00     
+    ##  . . solve.default      0.32       0.30     
     ##  . . . diag             0.02       0.02
 
-First note that this version takes about half the time of the previous
-one. Second note that a fair amount of time is spent computing the
-explicit matrix inverse using *solve*. (There’s not much we can do to
-speed up the *crossprod* operations, apart from making sure we are using
-a fast BLAS and potentially a parallelized BLAS.) It’s well known that
-one should avoid computing the explicit inverse if one can avoid it.
-Here’s a faster version that avoids it.
+First note that this version takes less than half the time of the
+previous one. Second note that a fair amount of time is spent computing
+the explicit matrix inverse using *solve*. (There’s not much we can do
+to speed up the *crossprod* operations, apart from making sure we are
+using a fast BLAS and potentially a parallelized BLAS.) It’s well known
+that one should avoid computing the explicit inverse if one can avoid
+it. Here’s a faster version that avoids it.
 
 ``` r
 lr_fast <- function(y, x) {
@@ -226,8 +232,9 @@ hotPaths(pd3)
 
     ##  path                   total.pct self.pct
     ##  lr_fast                100.00     0.00   
-    ##  . chol (<text>:4)       15.79     0.00   
-    ##  . . chol.default        15.79    15.79   
+    ##  . backsolve (<text>:6)   5.26     5.26   
+    ##  . chol (<text>:4)       10.53     0.00   
+    ##  . . chol.default        10.53    10.53   
     ##  . crossprod (<text>:2)  73.68    73.68   
     ##  . crossprod (<text>:3)  10.53    10.53
 
@@ -237,8 +244,9 @@ hotPaths(pd3, value = 'time')
 
     ##  path                   total.time self.time
     ##  lr_fast                0.38       0.00     
-    ##  . chol (<text>:4)      0.06       0.00     
-    ##  . . chol.default       0.06       0.06     
+    ##  . backsolve (<text>:6) 0.02       0.02     
+    ##  . chol (<text>:4)      0.04       0.00     
+    ##  . . chol.default       0.04       0.04     
     ##  . crossprod (<text>:2) 0.28       0.28     
     ##  . crossprod (<text>:3) 0.04       0.04
 
@@ -256,6 +264,6 @@ if you try to profile code that finishes really quickly, there’s not
 enough opportunity for the sampling to represent the calculation
 accurately and you may get spurious results.
 
-*Warning*: *Rprof* conflicts with threaded linear algebra, so you may
-need to set OMP_NUM_THREADS to 1 to disable threaded linear algebra if
-you profile code that involves linear algebra.
+> *Warning*: *Rprof* conflicts with threaded linear algebra, so you may
+> need to set OMP_NUM_THREADS to 1 to disable threaded linear algebra if
+> you profile code that involves linear algebra.

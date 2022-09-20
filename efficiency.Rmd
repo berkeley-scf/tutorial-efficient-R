@@ -12,7 +12,7 @@ library(microbenchmark)
 
 It is very inefficient to iteratively add elements to a vector, matrix,
 data frame, array or list (e.g., using *c*, *cbind*,
-*rbind*, etc. to add elements one at a time). Instead, create the full object in advance
+*rbind*, etc. to add elements one at a time) in R. (Note that Python handles this sort of thing much better.) Instead, create the full object in advance
 (this is equivalent to variable initialization in compiled languages)
 and then fill in the appropriate elements. The reason is that when
 R appends to an existing object, it creates a new copy and as the

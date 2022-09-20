@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Writing efficient R code</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="efficiency_files/libs/clipboard/clipboard.min.js"></script>
+<script src="efficiency_files/libs/quarto-html/quarto.js"></script>
+<script src="efficiency_files/libs/quarto-html/popper.min.js"></script>
+<script src="efficiency_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="efficiency_files/libs/quarto-html/anchor.min.js"></script>
+<link href="efficiency_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="efficiency_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="efficiency_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="efficiency_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="efficiency_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Writing efficient R code</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    
+  </div>
+  
+
+</header>
+
+<section id="pre-allocate-memory" class="level2">
+<h2 class="anchored" data-anchor-id="pre-allocate-memory">1. Pre-allocate memory</h2>
+<p>It is very inefficient to iteratively add elements to a vector, matrix, data frame, array or list (e.g., using <em>c</em>, <em>cbind</em>, <em>rbind</em>, etc. to add elements one at a time) in R. (Note that Python handles this sort of thing much better.) Instead, create the full object in advance (this is equivalent to variable initialization in compiled languages) and then fill in the appropriate elements. The reason is that when R appends to an existing object, it creates a new copy and as the object gets big, most of the computation involves the repeated memory allocation to create the new objects. Here’s an illustrative example, but of course we would not fill a vector like this using loops because we would in practice use vectorized calculations.</p>
+<div class="cell" data-hash="efficiency_cache/html/preallocate_9c251f08d69295eb6980d689a7b88164">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rbenchmark)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">10000</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>z <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>fun_append <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>   x <span class="ot">&lt;-</span> <span class="fu">exp</span>(vals[<span class="dv">1</span>])</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>   n <span class="ot">&lt;-</span> <span class="fu">length</span>(vals) </span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>   <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span>n) x <span class="ot">&lt;-</span> <span class="fu">c</span>(x, <span class="fu">exp</span>(vals[i]))</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>   <span class="fu">return</span>(x)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>fun_prealloc <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>   n <span class="ot">&lt;-</span> <span class="fu">length</span>(vals)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>   x <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">as.numeric</span>(<span class="cn">NA</span>), n)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>   <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n) x[i] <span class="ot">&lt;-</span> <span class="fu">exp</span>(vals[i])</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>   <span class="fu">return</span>(x)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>fun_vec <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">exp</span>(vals)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(x)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(<span class="fu">fun_append</span>(z), <span class="fu">fun_prealloc</span>(z), <span class="fu">fun_vec</span>(z),</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="at">replications =</span> <span class="dv">20</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             test elapsed replications
+1   fun_append(z)   2.055           20
+2 fun_prealloc(z)   0.014           20
+3      fun_vec(z)   0.003           20</code></pre>
+</div>
+</div>
+<p>It’s not necessary to use <em>as.numeric</em> above though it saves a bit of time. <strong>Challenge</strong>: figure out why I have <code>as.numeric(NA)</code> and not just <code>NA</code>. Hint: what is the type of <code>NA</code>?</p>
+<p>In some cases, we can speed up the initialization by initializing a vector of length one and then changing its length and/or dimension, although in many practical circumstances this would be overkill.</p>
+<p>For example, for matrices, start with a vector of length one, change the length, and then change the dimensions</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>nr <span class="ot">&lt;-</span> nc <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>   x <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">as.numeric</span>(<span class="cn">NA</span>), nr, nc),</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>   {x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="cn">NA</span>); <span class="fu">length</span>(x) <span class="ot">&lt;-</span> nr <span class="sc">*</span> nc; <span class="fu">dim</span>(x) <span class="ot">&lt;-</span> <span class="fu">c</span>(nr, nc)},</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                                                              test
+2 {\n    x &lt;- as.numeric(NA)\n    length(x) &lt;- nr * nc\n    dim(x) &lt;- c(nr, nc)\n}
+1                                              x &lt;- matrix(as.numeric(NA), nr, nc)
+  elapsed replications
+2   0.039           10
+1   0.158           10</code></pre>
+</div>
+</div>
+<p>For lists, we can do this</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>myList <span class="ot">&lt;-</span> <span class="fu">vector</span>(<span class="st">"list"</span>, <span class="at">length =</span> n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="vectorized-calculations" class="level2">
+<h2 class="anchored" data-anchor-id="vectorized-calculations">2. Vectorized calculations</h2>
+<p>One key way to write efficient R code is to take advantage of R’s vectorized operations.</p>
+<div class="cell" data-hash="efficiency_cache/html/vectorize_474d8285bccae00917deb1883075c8aa">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fl">1e6</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    x2 <span class="ot">&lt;-</span> x<span class="sc">^</span><span class="dv">2</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    { x2 <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="cn">NA</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">length</span>(x2) <span class="ot">&lt;-</span> n</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n) { x2[i] <span class="ot">&lt;-</span> x[i]<span class="sc">^</span><span class="dv">2</span> } },</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                                                                                       test
+2 {\n    x2 &lt;- as.numeric(NA)\n    length(x2) &lt;- n\n    for (i in 1:n) {\n        x2[i] &lt;- x[i]^2\n    }\n}
+1                                                                                                 x2 &lt;- x^2
+  elapsed replications
+2   0.598           10
+1   0.026           10</code></pre>
+</div>
+</div>
+<p>So what is different in how R handles the calculations above that explains the huge disparity in efficiency? The vectorized calculation is being done natively in C in a for loop. The explicit R for loop involves executing the for loop in R with repeated calls to C code at each iteration. This involves a lot of overhead because of the repeated processing of the R code inside the loop. For example, in each iteration of the loop, R is checking the types of the variables because it’s possible that the types might change, such as in this loop:</p>
+<pre><code>x &lt;- 3
+for( i in 1:n ) {
+     if(i == 7) {
+          x &lt;- 'foo'
+     }
+     y &lt;- x^2
+}</code></pre>
+<p>You can usually get a sense for how quickly an R call will pass things along to C or Fortran by looking at the body of the relevant function(s) being called and looking for <em>.Primitive</em>, <em>.Internal</em>, <em>.C</em>, <em>.Call</em>, or <em>.Fortran</em>. Let’s take a look at the code for <code>+</code>, <em>mean.default</em>, and <em>chol.default</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="st">`</span><span class="at">+</span><span class="st">`</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>function (e1, e2)  .Primitive("+")</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>mean.default</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>function (x, trim = 0, na.rm = FALSE, ...) 
+{
+    if (!is.numeric(x) &amp;&amp; !is.complex(x) &amp;&amp; !is.logical(x)) {
+        warning("argument is not numeric or logical: returning NA")
+        return(NA_real_)
+    }
+    if (isTRUE(na.rm)) 
+        x &lt;- x[!is.na(x)]
+    if (!is.numeric(trim) || length(trim) != 1L) 
+        stop("'trim' must be numeric of length one")
+    n &lt;- length(x)
+    if (trim &gt; 0 &amp;&amp; n) {
+        if (is.complex(x)) 
+            stop("trimmed means are not defined for complex data")
+        if (anyNA(x)) 
+            return(NA_real_)
+        if (trim &gt;= 0.5) 
+            return(stats::median(x, na.rm = FALSE))
+        lo &lt;- floor(n * trim) + 1
+        hi &lt;- n + 1 - lo
+        x &lt;- sort.int(x, partial = unique(c(lo, hi)))[lo:hi]
+    }
+    .Internal(mean(x))
+}
+&lt;bytecode: 0x5644f74eb340&gt;
+&lt;environment: namespace:base&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>chol.default</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>function (x, pivot = FALSE, LINPACK = FALSE, tol = -1, ...) 
+{
+    if (!missing(LINPACK)) 
+        stop("the LINPACK argument has been defunct since R 3.1.0")
+    if (is.complex(x)) 
+        stop("complex matrices not permitted at present")
+    .Internal(La_chol(as.matrix(x), pivot, tol))
+}
+&lt;bytecode: 0x5644f7720a30&gt;
+&lt;environment: namespace:base&gt;</code></pre>
+</div>
+</div>
+<p>Many R functions allow you to pass in vectors, and operate on those vectors in vectorized fashion. So before writing a for loop, look at the help information on the relevant function(s) to see if they operate in a vectorized fashion. Functions might take vectors for one or more of their arguments. Here we see that <code>nchar</code> is vectorized and that various arguments to <code>substring</code> can be vectors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>address <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Four score and seven years ago our fathers brought forth"</span>,</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>             <span class="st">" on this continent, a new nation, conceived in Liberty, "</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>             <span class="st">"and dedicated to the proposition that all men are created equal."</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">nchar</span>(address)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 56 56 64</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># use a vector in the 2nd and 3rd arguments, but not the first</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>startIndices <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="at">by =</span> <span class="dv">3</span>, <span class="at">length =</span> <span class="fu">nchar</span>(address[<span class="dv">1</span>])<span class="sc">/</span><span class="dv">3</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>startIndices</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1]  1  4  7 10 13 16 19 22 25 28 31 34 37 40 43 46 49 52 55</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">substring</span>(address[<span class="dv">1</span>], startIndices, startIndices <span class="sc">+</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "Fo" "r " "co" "e " "nd" "se" "en" "ye" "rs" "ag" " o" "r " "at" "er" " b"
+[16] "ou" "ht" "fo" "th"</code></pre>
+</div>
+</div>
+<p><strong>Challenge</strong>: Consider the chi-squared statistic involved in a test of independence in a contingency table:</p>
+<p>[ ^{2}=<em>{i}</em>{j},,,,, e_{ij}= ]</p>
+<p>where <span class="math inline">\(y_{i\cdot}=\sum_{j}y_{ij}\)</span> and <span class="math inline">\(y_{\cdot j} = \sum_{i} y_{ij}\)</span>. Write this in a vectorized way without any loops. Note that ‘vectorized’ calculations also work with matrices and arrays.</p>
+<p>Vectorized operations can sometimes be faster than built-in functions (note here the <em>ifelse</em> is notoriously slow), and clever vectorized calculations even better, though sometimes the code is uglier. Here’s an example of setting all negative values in a vector to zero.</p>
+<div class="cell" data-hash="efficiency_cache/html/vec-tricks_47b877b9f277876cb89f2858120bb954">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">1000000</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>   truncx <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(x <span class="sc">&gt;</span> <span class="dv">0</span>, x, <span class="dv">0</span>),</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>   {truncx <span class="ot">&lt;-</span> x; truncx[x <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span>},</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>   truncx <span class="ot">&lt;-</span> x <span class="sc">*</span> (x <span class="sc">&gt;</span> <span class="dv">0</span>),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>   <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                           test elapsed replications
+2 {\n    truncx &lt;- x\n    truncx[x &lt; 0] &lt;- 0\n}   0.072           10
+1                 truncx &lt;- ifelse(x &gt; 0, x, 0)   0.278           10
+3                         truncx &lt;- x * (x &gt; 0)   0.044           10</code></pre>
+</div>
+</div>
+<p>Additional tips: - If you do need to loop over dimensions of a matrix or array, if possible loop over the smallest dimension and use the vectorized calculation on the larger dimension(s). For example if you have a 10000 by 10 matrix, try to set up your problem so you can loop over the 10 columns rather than the 10000 rows. - In general, looping over columns is likely to be faster than looping over rows given R’s column-major ordering (matrices are stored in memory as a long array in which values in a column are adjacent to each other) (see more in Section 4.6 on the cache). - You can use direct arithmetic operations to add/subtract/multiply/divide a vector by each column of a matrix, e.g.&nbsp;<code>A*b</code> does element-wise multiplication of each column of <em>A</em> by a vector <em>b</em>. If you need to operate by row, you can do it by transposing the matrix.</p>
+<p>Caution: relying on R’s recycling rule in the context of vectorized operations, such as is done when direct-multiplying a matrix by a vector to scale the rows relative to each other, can be dangerous as the code is not transparent and poses greater dangers of bugs. In some cases you may want to first write the code transparently and then compare the more efficient code to make sure the results are the same. It’s also a good idea to comment your code in such cases.</p>
+</section>
+<section id="using-apply-and-specialized-functions" class="level2">
+<h2 class="anchored" data-anchor-id="using-apply-and-specialized-functions">3. Using <em>apply</em> and specialized functions</h2>
+<p>Historically, another core efficiency strategy in R has been to use the <em>apply</em> functionality (e.g., <code>apply</code>, <code>sapply</code>, <code>lapply</code>, <code>mapply</code>, etc.).</p>
+<section id="some-faster-alternatives-to-apply" class="level3">
+<h3 class="anchored" data-anchor-id="some-faster-alternatives-to-apply">Some faster alternatives to <code>apply</code></h3>
+<p>Note that even better than <em>apply</em> for calculating sums or means of columns or rows (it also can be used for arrays) is {row,col}{Sums,Means}.</p>
+<div class="cell" data-hash="efficiency_cache/html/apply_d12f2ddaa3dbce1efb5933c4597423a4">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">3000</span>; x <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n <span class="sc">*</span> n), <span class="at">nr =</span> n)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>   out <span class="ot">&lt;-</span> <span class="fu">apply</span>(x, <span class="dv">1</span>, mean),</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>   out <span class="ot">&lt;-</span> <span class="fu">rowMeans</span>(x),</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>   <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                      test elapsed replications
+1 out &lt;- apply(x, 1, mean)   2.024           10
+2       out &lt;- rowMeans(x)   0.205           10</code></pre>
+</div>
+</div>
+<p>We can ‘sweep’ out a summary statistic, such as subtracting off a mean from each column, using <em>sweep</em></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(out <span class="ot">&lt;-</span> <span class="fu">sweep</span>(x, <span class="dv">2</span>, <span class="at">STATS =</span> <span class="fu">colMeans</span>(x), <span class="at">FUN =</span> <span class="st">"-"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+  0.144   0.012   0.156 </code></pre>
+</div>
+</div>
+<p>Here’s a trick for doing the sweep based on vectorized calculations, remembering that if we subtract a vector from a matrix, it subtracts each element of the vector from all the elements in the corresponding ROW. Hence the need to transpose twice.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(out2 <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">t</span>(x) <span class="sc">-</span> <span class="fu">colMeans</span>(x)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+  0.235   0.040   0.274 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(out, out2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+</section>
+<section id="are-apply-lapply-sapply-etc.-faster-than-loops" class="level3">
+<h3 class="anchored" data-anchor-id="are-apply-lapply-sapply-etc.-faster-than-loops">Are <em>apply</em>, <em>lapply</em>, <em>sapply</em>, etc. faster than loops?</h3>
+<p>Using <em>apply</em> with matrices and versions of <em>apply</em> with lists or vectors (e.g., <code>lapply</code>, <code>sapply</code>) may or may not be faster than looping but generally produces cleaner code.</p>
+<p>Whether looping and use of apply variants is slow will depend in part on whether a substantial part of the work is in the overhead involved in the looping or in the time required by the function evaluation on each of the elements. If you’re worried about speed, it’s a good idea to benchmark the <em>apply</em> variant against looping.</p>
+<p>Here’s an example where <em>apply</em> is not faster than a loop. Similar examples can be constructed where <em>lapply</em> or <em>sapply</em> are not faster than writing a loop.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">500000</span>; nr <span class="ot">&lt;-</span> <span class="dv">10000</span>; nCalcs <span class="ot">&lt;-</span> n<span class="sc">/</span>nr</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n), <span class="at">nrow =</span> nr)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>nr</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  out1 <span class="ot">&lt;-</span> <span class="fu">apply</span>(mat, <span class="dv">2</span>, <span class="cf">function</span>(vec) {</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                         mod <span class="ot">=</span> <span class="fu">lm</span>(vec <span class="sc">~</span> times)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">return</span>(mod<span class="sc">$</span>coef[<span class="dv">2</span>])</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>                     })) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+  0.077   0.000   0.076 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>({</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>                out2 <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="cn">NA</span>, nCalcs)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>nCalcs){</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>                    out2[i] <span class="ot">=</span> <span class="fu">lm</span>(mat[ , i] <span class="sc">~</span> times)<span class="sc">$</span>coef[<span class="dv">2</span>]</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>                }</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>            }) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+  0.074   0.001   0.075 </code></pre>
+</div>
+</div>
+<p>And here’s an example, where (unlike the previous example) the core computation is very fast, so we might expect the overhead of looping to be important. I believe that in old versions of R the <em>sapply</em> in this example was faster than looping in R, but that doesn’t seem to be the case currently. I think this may be related to various somewhat recent improvements in R’s handling of loops, possibly including the use of the byte compiler.</p>
+<div class="cell" data-hash="efficiency_cache/html/apply-vs-for-part2_58f54ce47024b6ff44f9f2d230bb1c67">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>z <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fl">1e6</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>fun_loop <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="cn">NA</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    n <span class="ot">&lt;-</span> <span class="fu">length</span>(vals)</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">length</span>(x) <span class="ot">&lt;-</span> n</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n) x[i] <span class="ot">&lt;-</span> <span class="fu">exp</span>(vals[i])</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(x)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>fun_sapply <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">sapply</span>(vals, exp)</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(x)</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>fun_vec <span class="ot">&lt;-</span> <span class="cf">function</span>(vals) {</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> <span class="fu">exp</span>(vals)</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(x)</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(<span class="fu">fun_loop</span>(z), <span class="fu">fun_sapply</span>(z), <span class="fu">fun_vec</span>(z),</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           test elapsed replications
+1   fun_loop(z)   0.732           10
+2 fun_sapply(z)   4.011           10
+3    fun_vec(z)   0.061           10</code></pre>
+</div>
+</div>
+<p>You’ll notice if you look at the R code for <em>lapply</em> (<em>sapply</em> just calls <em>lapply</em>) that it calls directly out to C code, so the for loop is executed in compiled code. However, the code being executed at each iteration is still R code, so there is still all the overhead of the R interpreter.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(lapply)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>function (X, FUN, ...) 
+{
+    FUN &lt;- match.fun(FUN)
+    if (!is.vector(X) || is.object(X)) 
+        X &lt;- as.list(X)
+    .Internal(lapply(X, FUN))
+}
+&lt;bytecode: 0x5644f295c438&gt;
+&lt;environment: namespace:base&gt;</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="matrix-algebra-efficiency" class="level2">
+<h2 class="anchored" data-anchor-id="matrix-algebra-efficiency">4. Matrix algebra efficiency</h2>
+<p>Often calculations that are not explicitly linear algebra calculations can be done as matrix algebra. If our R installation has a fast (and possibly parallelized) BLAS, this allows our calculation to take advantage of it.</p>
+<p>For example, we can sum the rows of a matrix by multiplying by a vector of ones. Given the extra computation involved in actually multiplying each number by one, it’s surprising that this is faster than using R’s heavily optimized <em>rowSums</em> function.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>mat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">500</span><span class="sc">*</span><span class="dv">500</span>), <span class="dv">500</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(<span class="fu">apply</span>(mat, <span class="dv">1</span>, sum),</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    mat <span class="sc">%*%</span> <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">ncol</span>(mat)),</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rowSums</span>(mat),</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                       test elapsed replications
+1        apply(mat, 1, sum)   0.027           10
+2 mat %*% rep(1, ncol(mat))   0.002           10
+3              rowSums(mat)   0.010           10</code></pre>
+</div>
+</div>
+<p>On the other hand, big matrix operations can be slow. <strong>Challenge</strong>: Suppose you want a new matrix that computes the differences between successive columns of a matrix of arbitrary size. How would you do this as matrix algebra operations? It’s possible to write it as multiplying the matrix by another matrix that contains 0s, 1s, and -1s in appropriate places. Here it turns out that the <em>for</em> loop is much faster than matrix multiplication. However, there is a way to do it faster as matrix direct subtraction.</p>
+<section id="order-of-operations-and-efficiency" class="level3">
+<h3 class="anchored" data-anchor-id="order-of-operations-and-efficiency">Order of operations and efficiency</h3>
+<p>When doing matrix algebra, the order in which you do operations can be critical for efficiency. How should I order the following calculation?</p>
+<div class="cell" data-hash="efficiency_cache/html/linalg-order_35943e8236a72c311854feae030a7c7b">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">5000</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">5000</span> <span class="sc">*</span> <span class="dv">5000</span>), <span class="dv">5000</span>)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>B <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">5000</span> <span class="sc">*</span> <span class="dv">5000</span>), <span class="dv">5000</span>)</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">5000</span>)</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  res1 <span class="ot">&lt;-</span> A <span class="sc">%*%</span> B <span class="sc">%*%</span> x</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+ 11.900   1.230   1.748 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">system.time</span>(</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  res2 <span class="ot">&lt;-</span> A <span class="sc">%*%</span> (B <span class="sc">%*%</span> x)</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   user  system elapsed 
+  0.283   0.067   0.058 </code></pre>
+</div>
+</div>
+<p>Why is the second order much faster?</p>
+</section>
+<section id="avoiding-unnecessary-operations" class="level3">
+<h3 class="anchored" data-anchor-id="avoiding-unnecessary-operations">Avoiding unnecessary operations</h3>
+<p>We can use the matrix direct product (i.e., <code>A*B</code>) to do some manipulations much more quickly than using matrix multiplication. <strong>Challenge</strong>: How can I use the direct product to find the trace of a matrix, <span class="math inline">\(XY\)</span>?</p>
+<p>Finally, when working with diagonal matrices, you can generally get much faster results by being smart. The following operations: <span class="math inline">\(X+D\)</span>, <span class="math inline">\(DX\)</span>, <span class="math inline">\(XD\)</span> are mathematically the sum of two matrices and products of two matrices. But we can do the computation without using two full matrices. <strong>Challenge</strong>: How?</p>
+<div class="cell" data-hash="efficiency_cache/html/diag_7706d6246a5d47aa742265789ef3ef07">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(n<span class="sc">^</span><span class="dv">2</span>), n) </span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>diagvals <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>D <span class="ot">=</span> <span class="fu">diag</span>(diagvals)</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a><span class="co"># the following lines are very inefficient</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>summedMat <span class="ot">&lt;-</span> X <span class="sc">+</span> D</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>prodMat1 <span class="ot">&lt;-</span> D <span class="sc">%*%</span> X</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>prodMat2 <span class="ot">&lt;-</span> X <span class="sc">%*%</span> D</span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="co"># How can we do each of those operations much more quickly?</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>More generally, sparse matrices and structured matrices (such as block diagonal matrices) can generally be worked with MUCH more efficiently than treating them as arbitrary matrices. The R packages <em>spam</em> (for arbitrary sparse matrices), <em>bdsmatrix</em> (for block-diagonal matrices), and <em>Matrix</em> (for a variety of sparse matrix types) can help, as can specialized code available in other languages, such as C and Fortran packages.</p>
+</section>
+</section>
+<section id="fast-mappinglookup-tables" class="level2">
+<h2 class="anchored" data-anchor-id="fast-mappinglookup-tables">5. Fast mapping/lookup tables</h2>
+<p>Sometimes you need to map between two vectors. E.g., <span class="math inline">\(y_{i}\sim\mathcal{N}(\mu_{j[i]},\sigma^{2})\)</span> is a basic ANOVA type structure, where multiple observations are associated with a common mean, <span class="math inline">\(\mu_j\)</span>, via the <code>j[i]</code> mapping.</p>
+<p>How can we quickly look up the mean associated with each observation? A good strategy is to create a vector, <em>grp</em>, that gives a numeric mapping of the observations to their cluster, playing the role of <code>j[i]</code> above. Then you can access the <span class="math inline">\(\mu\)</span> value relevant for each observation as: <code>mus[grp]</code>. This requires that <em>grp</em> correctly map to the right elements of <em>mus</em>.</p>
+<p>The <em>match</em> function can help in creating numeric indices that can then be used for lookups. Here’s how you would create an index vector, <em>grp</em>, if it doesn’t already exist.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>,</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">clusterLabel =</span> <span class="fu">c</span>(<span class="st">'C'</span>, <span class="st">'B'</span>, <span class="st">'B'</span>, <span class="st">'A'</span>, <span class="st">'C'</span>)) </span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>info <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">grade =</span> <span class="fu">c</span>(<span class="st">'A'</span>, <span class="st">'B'</span>, <span class="st">'C'</span>),</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">numGrade =</span> <span class="fu">c</span>(<span class="dv">95</span>, <span class="dv">85</span>, <span class="dv">75</span>),</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">fail =</span> <span class="fu">c</span>(<span class="cn">FALSE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span>) )</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>grp <span class="ot">&lt;-</span> <span class="fu">match</span>(df<span class="sc">$</span>clusterLabel, info<span class="sc">$</span>grade) </span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>numGrade <span class="ot">&lt;-</span> info<span class="sc">$</span>numGrade[grp]</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  id clusterLabel numGrade
+1  1            C       75
+2  2            B       85
+3  3            B       85
+4  4            A       95
+5  5            C       75</code></pre>
+</div>
+</div>
+<section id="lookup-by-name-versus-index" class="level3">
+<h3 class="anchored" data-anchor-id="lookup-by-name-versus-index">Lookup by name versus index</h3>
+<p>In the example above we looked up the <code>mu</code> values based on <code>grp</code>, which supplies the needed indexes as numeric indexes.</p>
+<p>R also allows you to look up elements of vector by name, as illustrated here by rearranging the code above a bit:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>info2 <span class="ot">&lt;-</span> info<span class="sc">$</span>numGrade</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(info2) <span class="ot">&lt;-</span> info<span class="sc">$</span>grade</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>info2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> A  B  C 
+95 85 75 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>info2[df<span class="sc">$</span>clusterLabel]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> C  B  B  A  C 
+75 85 85 95 75 </code></pre>
+</div>
+</div>
+<p>You can do similar things in terms of looking up by name with dimension names of matrices/arrays, row and column names of dataframes, and named lists.</p>
+<p>However, looking things up by name can be slow relative to looking up by index. Here’s a toy example where we have a vector or list with 1000 elements and the character names of the elements are just the character versions of the indices of the elements.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(microbenchmark)</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span>n</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>xL <span class="ot">&lt;-</span> <span class="fu">as.list</span>(x)</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>nms <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"var"</span>, <span class="fu">as.character</span>(x))</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(x) <span class="ot">&lt;-</span> nms</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(xL) <span class="ot">&lt;-</span> nms</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>x[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>var1 var2 var3 
+   1    2    3 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>xL[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$var1
+[1] 1
+
+$var2
+[1] 2
+
+$var3
+[1] 3</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">microbenchmark</span>(</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>    x[<span class="dv">500</span>],  <span class="co"># index lookup in vector</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>    x[<span class="st">"var500"</span>], <span class="co"># name lookup in vector</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    xL[[<span class="dv">500</span>]], <span class="co"># index lookup in list</span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>    xL[[<span class="st">"var500"</span>]]) <span class="co"># name lookup in list</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Unit: nanoseconds
+           expr  min     lq    mean median     uq   max neval cld
+         x[500]  260  276.0  305.95  291.0  306.5   886   100 a  
+    x["var500"] 2138 2193.5 2301.38 2208.5 2224.0 10914   100  b 
+      xL[[500]]  123  148.0  195.70  161.0  173.5  3431   100 a  
+ xL[["var500"]] 2808 2844.5 2863.67 2857.5 2868.5  3250   100   c</code></pre>
+</div>
+</div>
+<p>Lookup by name is slow because R needs to scan through the objects one by one until it finds the one with the name it is looking for. In contrast, to look up by index, R can just go directly to the position of interest.</p>
+<p>Side note: there is a lot of variability across the 100 replications shown above. This might have to do with cache effects (see next section).</p>
+<p>In contrast, we can look up by name in an environment very quickly, because environments in R use hashing, which allows for fast lookup that does not require scanning through all of the names in the environment. In fact, this is how R itself looks for values when you specify variables in R code, because the global environment, function frames, and package namespaces are all environments.</p>
+<div class="cell" data-hash="efficiency_cache/html/env-lookup_82a4b9f07c098c5eb949209adb0cd058">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>xEnv <span class="ot">&lt;-</span> <span class="fu">as.environment</span>(xL)  <span class="co"># convert from a named list</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>xEnv<span class="sc">$</span>var500  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 500</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">microbenchmark</span>(</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  x[<span class="dv">500</span>],</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  xL[[<span class="dv">500</span>]],</span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  xEnv[[<span class="st">"var500"</span>]],</span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>  xEnv<span class="sc">$</span>var500</span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Unit: nanoseconds
+             expr min    lq   mean median    uq  max neval cld
+           x[500] 264 273.0 329.64  276.5 339.5 2537   100   b
+        xL[[500]] 121 137.5 177.13  145.0 161.0 2040   100  a 
+ xEnv[["var500"]] 119 128.0 182.97  134.5 143.5 3730   100  a 
+      xEnv$var500 176 191.0 237.34  197.5 257.0 1290   100  a </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="cache-aware-programming" class="level2">
+<h2 class="anchored" data-anchor-id="cache-aware-programming">6. Cache-aware programming</h2>
+<p>In addition to main memory (what we usually mean when we talk about RAM), computers also have memory caches, which are small amounts of fast memory that can be accessed very quickly by the processor. For example your computer might have L1, L2, and L3 caches, with L1 the smallest and fastest and L3 the largest and slowest. The idea is to try to have the data that is most used by the processor in the cache.</p>
+<p>If the next piece of data needed for computation is available in the cache, this is a <em>cache hit</em> and the data can be accessed very quickly. However, if the data is not available in the cache, this is a <em>cache miss</em> and the speed of access will be a lot slower. <em>Cache-aware programming</em> involves writing your code to minimize cache misses. Generally when data is read from memory it will be read in chunks, so values that are contiguous will be read together.</p>
+<p>How does this inform one’s programming? For example, if you have a matrix of values stored in column-major order, computing on a column will be a lot faster than computing on a row, because the column can be read into the cache from main memory and then accessed in the cache. In contrast, if the matrix is large and therefore won’t fit in the cache, when you access the values of a row, you’ll have to go to main memory repeatedly to get the values for the row because the values are not stored contiguously.</p>
+<p>There’s a nice example of the importance of the cache at <a href="https://wrathematics.github.io/2016/10/28/comparing-symmetric-eigenvalue-performance/">the bottom of this blog post</a>.</p>
+<p>If you know the size of the cache, you can try to design your code so that in a given part of your code you access data structures that will fit in the cache. This sort of thing is generally more relevant if you’re coding in a language like C. But it can matter sometimes in R too. Here’s an example:</p>
+<div class="cell" data-hash="efficiency_cache/html/cache-aware_a31916a967d82c5ba9cbe6f04494b656">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>nr <span class="ot">&lt;-</span> <span class="dv">800000</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>nc <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a><span class="do">## large matrix that won't fit in cache</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(nr <span class="sc">*</span> nc), <span class="at">nrow =</span> nr)</span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>tA <span class="ot">&lt;-</span> <span class="fu">t</span>(A)</span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(</span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">apply</span>(A, <span class="dv">2</span>, mean),   <span class="do">## operate by column</span></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">apply</span>(tA, <span class="dv">1</span>, mean),  <span class="do">## exact same calculation, but by row</span></span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                test elapsed replications
+1  apply(A, 2, mean)  10.332           10
+2 apply(tA, 1, mean)  21.347           10</code></pre>
+</div>
+</div>
+<p>Now let’s compare things when we make the matrix small enough that it fits in the cache. In this case it fits into the largest (L3) cache but not the smaller (L2 and L1) caches, and we see that the difference in speed disappears.</p>
+<div class="cell" data-hash="efficiency_cache/html/cache-aware2_e4636738ce0592c95af56754be09d060">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>nr <span class="ot">&lt;-</span> <span class="dv">800</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>nc <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a><span class="do">## small matrix that should fit in cache</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(nr <span class="sc">*</span> nc), <span class="at">nrow =</span> nr)</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="do">## Yep, the size is less than the L3 cache:</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a><span class="fu">object.size</span>(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>640216 bytes</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>memuse<span class="sc">::</span><span class="fu">Sys.cachesize</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>L1I:   32.000 KiB 
+L1D:   32.000 KiB 
+L2:   256.000 KiB 
+L3:     8.000 MiB </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>tA <span class="ot">&lt;-</span> <span class="fu">t</span>(A)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">benchmark</span>(<span class="fu">apply</span>(A, <span class="dv">2</span>, mean),  <span class="do">## by column</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>          <span class="fu">apply</span>(tA, <span class="dv">1</span>, mean),  <span class="do">## by row</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">replications =</span> <span class="dv">10</span>, <span class="at">columns=</span><span class="fu">c</span>(<span class="st">'test'</span>, <span class="st">'elapsed'</span>, <span class="st">'replications'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                test elapsed replications
+1  apply(A, 2, mean)   0.009           10
+2 apply(tA, 1, mean)   0.011           10</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
