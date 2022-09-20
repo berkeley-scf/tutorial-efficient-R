@@ -141,10 +141,10 @@ substring(address[1], startIndices, startIndices + 1)
 a test of independence in a contingency table:
 
 \[
-\chi^{2}=\sum_{i}\sum_{j} ( (y_{i,j}-e_{i,j})^{2} ) / e_{i,j},\,\,\,\, e_{i,j}= ( y_{i\cdot}y_{\cdot j} ) / y_{\cdot\cdot}
+\chi^{2}=\sum_{i}\sum_{j} (y_{i,j}-e_{i,j})^{2} / e_{i,j},\,\,\,\, e_{i,j}= ( y_{i\cdot}y_{\cdot j} ) / y_{\cdot\cdot}
 \]
 
-where $y_{i\cdot}=\sum_{j}y_{i,j}$ and $y_{\cdot j} = \sum_{i} y_{i,j}$. Write this in a vectorized way
+where $y_{i\cdot}=\sum_{j}y_{i,j}$ and $y_{\cdot j} = \sum_{i} y_{i,j}$ and $y_{\cdot\cdot} = \sum_{i} \sum_{j} y_{i,j}$. Write this in a vectorized way
 without any loops.  Note that 'vectorized' calculations also work
 with matrices and arrays.
 
