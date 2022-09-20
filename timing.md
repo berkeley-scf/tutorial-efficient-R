@@ -21,14 +21,14 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##   0.205   0.039   0.245
+    ##   0.199   0.036   0.234
 
 ``` r
 system.time(rowMeans(x))
 ```
 
     ##    user  system elapsed 
-    ##   0.023   0.000   0.023
+    ##   0.022   0.000   0.022
 
 In general, *user* time gives the CPU time spent by R and *system* time
 gives the CPU time spent by the kernel (the operating system) on behalf
@@ -52,10 +52,10 @@ microbenchmark(
 ```
 
     ## Unit: nanoseconds
-    ##           expr  min     lq    mean median     uq   max neval cld
-    ##       df[2, 1] 7808 8629.0 8953.87   8891 9192.5 10576   100   b
-    ##     df$vals[2]  587  824.0 1127.77    908 1078.5 14589   100  a 
-    ##  df[2, "vals"] 8061 8552.5 9462.02   8877 9260.5 47469   100   b
+    ##           expr  min     lq     mean median     uq   max neval cld
+    ##       df[2, 1] 7857 8426.5  9489.48 8738.5 9142.0 27043   100   b
+    ##     df$vals[2]  603  795.0  1012.25  869.5 1095.5  8584   100  a 
+    ##  df[2, "vals"] 7901 8390.5 10318.71 8765.0 9203.5 38157   100   b
 
 **Challenge**: Think about what order of operations in the first and
 third approaches above might lead to the timing result seen above.
@@ -76,8 +76,8 @@ microbenchmark(
 
     ## Unit: milliseconds
     ##          expr      min       lq     mean   median       uq      max neval cld
-    ##    t(x) %*% x 30.03160 30.67943 36.31298 31.19266 41.69366 59.66279    10   b
-    ##  crossprod(x) 13.99203 14.10572 14.91910 14.25554 14.56747 17.82640    10  a
+    ##    t(x) %*% x 23.53619 30.03390 31.78096 30.08352 30.28837 47.21063    10   b
+    ##  crossprod(x) 14.47850 14.59828 14.86071 14.72891 15.03512 15.71100    10  a
 
 **Challenge**: What is inefficient about the manual approach above?
 
@@ -140,27 +140,29 @@ hotPaths(pd1)
 
     ##  path               total.pct self.pct
     ##  lr_slow            100.00     0.00   
-    ##  . %*% (<text>:2)    32.73    32.73   
-    ##  . %*% (<text>:3)     1.82     1.82   
-    ##  . solve (<text>:4)  29.09     0.00   
-    ##  . . solve.default   29.09    25.45   
-    ##  . . . diag           3.64     3.64   
-    ##  . t (<text>:2)       1.82     0.00   
-    ##  . . t.default        1.82     1.82   
-    ##  . t (<text>:3)      34.55     0.00   
-    ##  . . t.default       34.55    34.55
+    ##  . %*% (<text>:2)    31.48    31.48   
+    ##  . %*% (<text>:3)     3.70     3.70   
+    ##  . %*% (<text>:5)     1.85     1.85   
+    ##  . solve (<text>:4)  25.93     0.00   
+    ##  . . solve.default   25.93    24.07   
+    ##  . . . diag           1.85     1.85   
+    ##  . t (<text>:2)       1.85     0.00   
+    ##  . . t.default        1.85     1.85   
+    ##  . t (<text>:3)      35.19     0.00   
+    ##  . . t.default       35.19    35.19
 
 ``` r
 hotPaths(pd1, value = 'time')
 ```
 
     ##  path               total.time self.time
-    ##  lr_slow            1.10       0.00     
-    ##  . %*% (<text>:2)   0.36       0.36     
-    ##  . %*% (<text>:3)   0.02       0.02     
-    ##  . solve (<text>:4) 0.32       0.00     
-    ##  . . solve.default  0.32       0.28     
-    ##  . . . diag         0.04       0.04     
+    ##  lr_slow            1.08       0.00     
+    ##  . %*% (<text>:2)   0.34       0.34     
+    ##  . %*% (<text>:3)   0.04       0.04     
+    ##  . %*% (<text>:5)   0.02       0.02     
+    ##  . solve (<text>:4) 0.28       0.00     
+    ##  . . solve.default  0.28       0.26     
+    ##  . . . diag         0.02       0.02     
     ##  . t (<text>:2)     0.02       0.00     
     ##  . . t.default      0.02       0.02     
     ##  . t (<text>:3)     0.38       0.00     
@@ -191,22 +193,24 @@ hotPaths(pd2)
 
     ##  path                   total.pct self.pct
     ##  lr_medium              100.00     0.00   
-    ##  . crossprod (<text>:2)  41.94    41.94   
-    ##  . crossprod (<text>:3)   6.45     6.45   
-    ##  . solve (<text>:4)      51.61     0.00   
-    ##  . . solve.default       51.61    48.39   
-    ##  . . . diag               3.23     3.23
+    ##  . %*% (<text>:5)         6.76     6.76   
+    ##  . crossprod (<text>:2)  20.27    20.27   
+    ##  . crossprod (<text>:3)   4.05     4.05   
+    ##  . solve (<text>:4)      68.92     0.00   
+    ##  . . solve.default       68.92    67.57   
+    ##  . . . diag               1.35     1.35
 
 ``` r
 hotPaths(pd2, value = 'time')
 ```
 
     ##  path                   total.time self.time
-    ##  lr_medium              0.62       0.00     
-    ##  . crossprod (<text>:2) 0.26       0.26     
-    ##  . crossprod (<text>:3) 0.04       0.04     
-    ##  . solve (<text>:4)     0.32       0.00     
-    ##  . . solve.default      0.32       0.30     
+    ##  lr_medium              1.48       0.00     
+    ##  . %*% (<text>:5)       0.10       0.10     
+    ##  . crossprod (<text>:2) 0.30       0.30     
+    ##  . crossprod (<text>:3) 0.06       0.06     
+    ##  . solve (<text>:4)     1.02       0.00     
+    ##  . . solve.default      1.02       1.00     
     ##  . . . diag             0.02       0.02
 
 First note that this version takes less than half the time of the
@@ -231,23 +235,21 @@ hotPaths(pd3)
 ```
 
     ##  path                   total.pct self.pct
-    ##  lr_fast                100.00     0.00   
-    ##  . backsolve (<text>:6)   5.26     5.26   
-    ##  . chol (<text>:4)       10.53     0.00   
-    ##  . . chol.default        10.53    10.53   
-    ##  . crossprod (<text>:2)  73.68    73.68   
-    ##  . crossprod (<text>:3)  10.53    10.53
+    ##  lr_fast                100.0      0.0    
+    ##  . chol (<text>:4)       12.5      0.0    
+    ##  . . chol.default        12.5     12.5    
+    ##  . crossprod (<text>:2)  75.0     75.0    
+    ##  . crossprod (<text>:3)  12.5     12.5
 
 ``` r
 hotPaths(pd3, value = 'time')
 ```
 
     ##  path                   total.time self.time
-    ##  lr_fast                0.38       0.00     
-    ##  . backsolve (<text>:6) 0.02       0.02     
+    ##  lr_fast                0.32       0.00     
     ##  . chol (<text>:4)      0.04       0.00     
     ##  . . chol.default       0.04       0.04     
-    ##  . crossprod (<text>:2) 0.28       0.28     
+    ##  . crossprod (<text>:2) 0.24       0.24     
     ##  . crossprod (<text>:3) 0.04       0.04
 
 We can see we get another speedup from that final version of the code.
