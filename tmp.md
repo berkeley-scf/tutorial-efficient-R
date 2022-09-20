@@ -20,3 +20,14 @@ print(a)
     [1] 3
 :::
 :::
+
+::: cell
+``` {.r .cell-code}
+a<-3
+print(a)
+```
+
+::: {.cell-output .cell-output-stdout}
+    [1] 3
+:::
+:::
