@@ -6,6 +6,8 @@ author: Christopher Paciorek
 
 ## 1. This Tutorial
 
+Please see the top menu bar for the various sections of this tutorial, of which this document is the introduction.
+
 This tutorial covers strategies for writing efficient R code by taking advantage of the underlying structure of how R works. In addition it covers tools and strategies for timing and profiling R code.
 
 While some of the strategies covered here are specific to R, many are built on principles that can guide your coding in other languages.
@@ -16,6 +18,7 @@ This tutorial assumes you have a working knowledge of R.
 
 Materials for this tutorial, including the R markdown file and associated code files that were used to create this document are available on GitHub at (https://github.com/berkeley-scf/tutorial-efficient-R) in the `gh-pages` branch.
 ```
+
 This tutorial by Christopher Paciorek is licensed under a Creative Commons Attribution 3.0 Unported License.
 
 
