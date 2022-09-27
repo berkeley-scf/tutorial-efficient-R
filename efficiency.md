@@ -71,8 +71,8 @@ replications = 10, columns=c('test', 'elapsed', 'replications'))
     ## 2 {\n    x <- as.numeric(NA)\n    length(x) <- nr * nc\n    dim(x) <- c(nr, nc)\n}
     ## 1                                              x <- matrix(as.numeric(NA), nr, nc)
     ##   elapsed replications
-    ## 2   0.042           10
-    ## 1   0.152           10
+    ## 2   0.039           10
+    ## 1   0.142           10
 
 For lists, we can do this
 
@@ -160,7 +160,7 @@ mean.default
     ##     }
     ##     .Internal(mean(x))
     ## }
-    ## <bytecode: 0x5655358bd0b8>
+    ## <bytecode: 0x556e328d0558>
     ## <environment: namespace:base>
 
 ``` r
@@ -175,7 +175,7 @@ chol.default
     ##         stop("complex matrices not permitted at present")
     ##     .Internal(La_chol(as.matrix(x), pivot, tol))
     ## }
-    ## <bytecode: 0x5655357a5c08>
+    ## <bytecode: 0x556e327a42e8>
     ## <environment: namespace:base>
 
 Many R functions allow you to pass in vectors, and operate on those
@@ -212,11 +212,12 @@ substring(address[1], startIndices, startIndices + 1)
 **Challenge**: Consider the chi-squared statistic involved in a test of
 independence in a contingency table:
 
-*χ*<sup>2</sup> = ∑<sub>*i*</sub>∑<sub>*j*</sub>((*y*<sub>*i*, *j*</sub>−*e*<sub>*i*, *j*</sub>)<sup>2</sup>)/*e*<sub>*i*, *j*</sub>,    *e*<sub>*i*, *j*</sub> = (*y*<sub>*i*⋅</sub>*y*<sub>⋅*j*</sub>)/*y*<sub>⋅⋅</sub>
+*χ*<sup>2</sup> = ∑<sub>*i*</sub>∑<sub>*j*</sub>(*y*<sub>*i*, *j*</sub>−*e*<sub>*i*, *j*</sub>)<sup>2</sup>/*e*<sub>*i*, *j*</sub>,    *e*<sub>*i*, *j*</sub> = (*y*<sub>*i*⋅</sub>*y*<sub>⋅*j*</sub>)/*y*<sub>⋅⋅</sub>
 
 where *y*<sub>*i*⋅</sub> = ∑<sub>*j*</sub>*y*<sub>*i*, *j*</sub> and
-*y*<sub>⋅*j*</sub> = ∑<sub>*i*</sub>*y*<sub>*i*, *j*</sub>. Write this
-in a vectorized way without any loops. Note that ‘vectorized’
+*y*<sub>⋅*j*</sub> = ∑<sub>*i*</sub>*y*<sub>*i*, *j*</sub> and
+*y*<sub>⋅⋅</sub> = ∑<sub>*i*</sub>∑<sub>*j*</sub>*y*<sub>*i*, *j*</sub>.
+Write this in a vectorized way without any loops. Note that ‘vectorized’
 calculations also work with matrices and arrays.
 
 Vectorized operations can sometimes be faster than built-in functions
@@ -295,7 +296,7 @@ system.time(out <- sweep(x, 2, STATS = colMeans(x), FUN = "-"))
 ```
 
     ##    user  system elapsed 
-    ##   0.689   0.099   0.790
+    ##   0.630   0.161   1.378
 
 Here’s a trick for doing the sweep based on vectorized calculations,
 remembering that if we subtract a vector from a matrix, it subtracts
@@ -307,7 +308,7 @@ system.time(out2 <- t(t(x) - colMeans(x)))
 ```
 
     ##    user  system elapsed 
-    ##   0.190   0.049   0.238
+    ##   0.194   0.041   0.235
 
 ``` r
 identical(out, out2)
@@ -343,7 +344,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.108   0.012   0.120
+    ##   0.094   0.015   0.109
 
 ``` r
 system.time({
@@ -355,7 +356,7 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##   0.083   0.000   0.083
+    ##   0.075   0.000   0.075
 
 And here’s an example, where (unlike the previous example) the core
 computation is very fast, so we might expect the overhead of looping to
@@ -411,7 +412,7 @@ print(lapply)
     ##         X <- as.list(X)
     ##     .Internal(lapply(X, FUN))
     ## }
-    ## <bytecode: 0x5655337775b8>
+    ## <bytecode: 0x556e307845b8>
     ## <environment: namespace:base>
 
 ## 4. Matrix algebra efficiency
@@ -435,9 +436,9 @@ benchmark(apply(mat, 1, sum),
 ```
 
     ##                        test elapsed replications
-    ## 1        apply(mat, 1, sum)   0.035           10
+    ## 1        apply(mat, 1, sum)   0.031           10
     ## 2 mat %*% rep(1, ncol(mat))   0.003           10
-    ## 3              rowSums(mat)   0.009           10
+    ## 3              rowSums(mat)   0.010           10
 
 On the other hand, big matrix operations can be slow.
 
@@ -620,10 +621,10 @@ microbenchmark(
 
     ## Unit: nanoseconds
     ##            expr  min     lq    mean median     uq   max neval cld
-    ##          x[500]  266  284.5  314.01  307.0  317.0   546   100 a  
-    ##     x["var500"] 2134 2196.5 2344.12 2218.5 2238.0 13082   100  b 
-    ##       xL[[500]]  126  145.5  170.27  161.5  177.5   492   100 a  
-    ##  xL[["var500"]] 3233 3279.0 3358.08 3293.0 3316.0  8535   100   c
+    ##          x[500]  259  281.0  306.77  295.5  303.0   692   100 a  
+    ##     x["var500"] 2136 2193.5 2409.30 2215.5 2299.5 12580   100  b 
+    ##       xL[[500]]  122  148.5  161.78  159.0  170.0   404   100 a  
+    ##  xL[["var500"]] 3260 3312.0 3446.10 3324.0 3357.5  9882   100   c
 
 Lookup by name is slow because R needs to scan through the objects one
 by one until it finds the one with the name it is looking for. In
