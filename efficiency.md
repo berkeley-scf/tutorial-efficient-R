@@ -71,7 +71,7 @@ replications = 10, columns=c('test', 'elapsed', 'replications'))
     ## 2 {\n    x <- as.numeric(NA)\n    length(x) <- nr * nc\n    dim(x) <- c(nr, nc)\n}
     ## 1                                              x <- matrix(as.numeric(NA), nr, nc)
     ##   elapsed replications
-    ## 2   0.039           10
+    ## 2   0.038           10
     ## 1   0.142           10
 
 For lists, we can do this
@@ -160,7 +160,7 @@ mean.default
     ##     }
     ##     .Internal(mean(x))
     ## }
-    ## <bytecode: 0x556e328d0558>
+    ## <bytecode: 0x55fceb7ed558>
     ## <environment: namespace:base>
 
 ``` r
@@ -175,7 +175,7 @@ chol.default
     ##         stop("complex matrices not permitted at present")
     ##     .Internal(La_chol(as.matrix(x), pivot, tol))
     ## }
-    ## <bytecode: 0x556e327a42e8>
+    ## <bytecode: 0x55fceb6c12e8>
     ## <environment: namespace:base>
 
 Many R functions allow you to pass in vectors, and operate on those
@@ -296,7 +296,7 @@ system.time(out <- sweep(x, 2, STATS = colMeans(x), FUN = "-"))
 ```
 
     ##    user  system elapsed 
-    ##   0.630   0.161   1.378
+    ##   0.644   0.106   0.752
 
 Here’s a trick for doing the sweep based on vectorized calculations,
 remembering that if we subtract a vector from a matrix, it subtracts
@@ -308,7 +308,7 @@ system.time(out2 <- t(t(x) - colMeans(x)))
 ```
 
     ##    user  system elapsed 
-    ##   0.194   0.041   0.235
+    ##   0.188   0.043   0.232
 
 ``` r
 identical(out, out2)
@@ -344,7 +344,7 @@ system.time(
 ```
 
     ##    user  system elapsed 
-    ##   0.094   0.015   0.109
+    ##   0.100   0.012   0.113
 
 ``` r
 system.time({
@@ -356,7 +356,7 @@ system.time({
 ```
 
     ##    user  system elapsed 
-    ##   0.075   0.000   0.075
+    ##   0.076   0.000   0.075
 
 And here’s an example, where (unlike the previous example) the core
 computation is very fast, so we might expect the overhead of looping to
@@ -412,7 +412,7 @@ print(lapply)
     ##         X <- as.list(X)
     ##     .Internal(lapply(X, FUN))
     ## }
-    ## <bytecode: 0x556e307845b8>
+    ## <bytecode: 0x55fce96a15b8>
     ## <environment: namespace:base>
 
 ## 4. Matrix algebra efficiency
@@ -429,16 +429,17 @@ heavily optimized *rowSums* function.
 
 ``` r
 mat <- matrix(rnorm(500*500), 500)
+ones <- rep(1, ncol(mat))
 benchmark(apply(mat, 1, sum),
-    mat %*% rep(1, ncol(mat)),
+    mat %*% ones,
     rowSums(mat),
     replications = 10, columns=c('test', 'elapsed', 'replications'))
 ```
 
-    ##                        test elapsed replications
-    ## 1        apply(mat, 1, sum)   0.031           10
-    ## 2 mat %*% rep(1, ncol(mat))   0.003           10
-    ## 3              rowSums(mat)   0.010           10
+    ##                 test elapsed replications
+    ## 1 apply(mat, 1, sum)   0.031           10
+    ## 2       mat %*% ones   0.003           10
+    ## 3       rowSums(mat)   0.010           10
 
 On the other hand, big matrix operations can be slow.
 
@@ -621,10 +622,10 @@ microbenchmark(
 
     ## Unit: nanoseconds
     ##            expr  min     lq    mean median     uq   max neval cld
-    ##          x[500]  259  281.0  306.77  295.5  303.0   692   100 a  
-    ##     x["var500"] 2136 2193.5 2409.30 2215.5 2299.5 12580   100  b 
-    ##       xL[[500]]  122  148.5  161.78  159.0  170.0   404   100 a  
-    ##  xL[["var500"]] 3260 3312.0 3446.10 3324.0 3357.5  9882   100   c
+    ##          x[500]  267  285.0  309.25  301.0  310.0   589   100 a  
+    ##     x["var500"] 2153 2195.5 2356.37 2221.0 2239.5 15519   100  b 
+    ##       xL[[500]]  122  146.0  160.12  155.5  166.5   364   100 a  
+    ##  xL[["var500"]] 3100 3129.0 3208.02 3145.0 3167.0  8999   100   c
 
 Lookup by name is slow because R needs to scan through the objects one
 by one until it finds the one with the name it is looking for. In

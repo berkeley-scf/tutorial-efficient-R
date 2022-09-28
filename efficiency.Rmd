@@ -291,8 +291,9 @@ For example, we can sum the rows of a matrix by multiplying by a vector of ones.
 
 ```{r, matrix-calc}
 mat <- matrix(rnorm(500*500), 500)
+ones <- rep(1, ncol(mat))
 benchmark(apply(mat, 1, sum),
-	mat %*% rep(1, ncol(mat)),
+	mat %*% ones,
 	rowSums(mat),
 	replications = 10, columns=c('test', 'elapsed', 'replications'))
 ```
